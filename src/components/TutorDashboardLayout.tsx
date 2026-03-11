@@ -101,8 +101,12 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
         <div className="flex h-16 items-center px-4 md:px-6">
           <div className="flex items-center">
             <Link to="/" className="flex items-center mr-4">
-              <div className="h-10 w-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                Logo
+              <div className="relative h-10 w-40">
+                <img
+                  src="/indu_ae.png"
+                  alt="Indu AE Logo"
+                  className="h-full object-contain"
+                />
               </div>
             </Link>
           </div>

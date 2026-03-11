@@ -51,10 +51,14 @@ const AdminLayout = () => {
       } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center">
-            <div className="h-8 w-8 bg-talent-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">T</span>
+            <div className="relative h-8 w-32">
+              <img
+                src="/indu_ae.png"
+                alt="Indu AE Logo"
+                className="h-full object-contain"
+              />
             </div>
-            <span className="ml-2 text-xl font-bold text-talent-dark">Admin Panel</span>
+            <span className="ml-2 text-xl font-bold text-talent-dark">Admin</span>
           </div>
           <Button
             variant="ghost"

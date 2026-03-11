@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd \"/c/Users/Aditya Gupta/Desktop/indu ae\" && npm run dev)"
+      "Bash(cd \"/c/Users/Aditya Gupta/Desktop/indu ae\" && npm run dev)",
+      "Bash(npx --yes sharp-cli -i \"/c/Users/Aditya Gupta/Desktop/indu ae/public/indu_ae.png\" -o \"/c/Users/Aditya Gupta/Desktop/indu ae/public/favicon.ico\" resize 32 32)"
     ]
   }
 }
