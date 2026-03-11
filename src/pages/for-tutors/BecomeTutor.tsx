@@ -1,9 +1,11 @@
 
+import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/PageLayout";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Users, Calendar, Video, DollarSign, Globe } from "lucide-react";
 
 const BecomeTutor = () => {
+  const navigate = useNavigate();
   const benefits = [
     {
       title: "Reach Students Worldwide",
@@ -100,7 +102,7 @@ const BecomeTutor = () => {
             <p className="text-talent-muted mb-6">
               Share your passion and expertise with eager young minds on Indu AE—India's growing platform for online education. Create your own schedule, set your rates, and connect with students who are excited to learn from you.
             </p>
-            <Button size="lg" className="bg-talent-primary hover:bg-talent-secondary text-white">
+            <Button size="lg" className="bg-talent-primary hover:bg-talent-secondary text-white" onClick={() => navigate("/auth/signup")}>
               Apply to Teach
             </Button>
           </div>
@@ -189,7 +191,7 @@ const BecomeTutor = () => {
             Join our community of passionate educators and start impacting young minds across the globe.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-talent-primary hover:bg-talent-secondary text-white">
+            <Button size="lg" className="bg-talent-primary hover:bg-talent-secondary text-white" onClick={() => navigate("/auth/signup")}>
               Apply to Teach
             </Button>
             <Button size="lg" variant="outline" className="border-talent-primary text-talent-primary hover:bg-talent-primary/5">

@@ -77,14 +77,15 @@ const SignUp = () => {
 
   const completeSignUp = () => {
     setShowSuccessDialog(false);
-    
+
     toast({
       title: "Account created successfully!",
       description: "Welcome to Indu AE. Your learning journey begins now.",
     });
-    
-    // Redirect to home page after signup
-    setTimeout(() => navigate("/dashboard"), 1500);
+
+    const selectedRole = form.getValues("role");
+    const destination = selectedRole === "tutor" ? "/tutor-dashboard" : "/dashboard";
+    setTimeout(() => navigate(destination), 1500);
   };
 
   return (
