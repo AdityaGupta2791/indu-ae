@@ -1,0 +1,528 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TUTOR
+  PARENT
+  CONSULTANT
+}
+
+enum Permission {
+  USER_MANAGEMENT
+  TUTOR_MANAGEMENT
+  COURSE_MANAGEMENT
+  BOOKING_OVERSIGHT
+  PAYMENT_MANAGEMENT
+  CREDIT_MANAGEMENT
+  TUTOR_PAYOUTS
+  CMS_MANAGEMENT
+  ANALYTICS_ACCESS
+  SYSTEM_CONFIG
+}
+
+enum DemoRequestStatus {
+  PENDING
+  ASSIGNED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum TimeSlotPreference {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+// ============================================
+// M1: USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  role                Role
+  isActive            Boolean   @default(true)
+  isEmailVerified     Boolean   @default(false)
+  forcePasswordChange Boolean   @default(false)
+  lastLoginAt         DateTime?
+
+  // Role-specific profiles
+  parentProfile     ParentProfile?
+  tutorProfile      TutorProfile?
+  consultantProfile ConsultantProfile?
+
+  // Admin permissions (only for SUPER_ADMIN and ADMIN)
+  adminPermissions AdminPermission[]
+
+  // Tokens (refresh, verification, reset)
+  tokens Token[]
+
+  // V2: Student self-access
+  studentAccount Student?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+}
+
+model AdminPermission {
+  id         String     @id @default(uuid())
+  userId     String
+  permission Permission
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, permission])
+  @@index([userId])
+}
+
+// ============================================
+// TOKEN STORAGE (replaces Redis)
+// ============================================
+
+enum TokenType {
+  REFRESH
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  userId    String
+  type      TokenType
+  value     String    @unique
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([value])
+  @@index([userId, type])
+  @@index([expiresAt])
+}
+
+// ============================================
+// M2: PARENT & STUDENT PROFILES
+// ============================================
+
+model ParentProfile {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+  firstName String
+  lastName  String
+  phone     String?
+  address   String?
+  city      String?
+  country   String  @default("UAE")
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children     Student[]
+  demoRequests DemoRequest[]
+  creditTransactions CreditTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id          String    @id @default(uuid())
+  parentId    String
+  userId      String?   @unique
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime?
+  gradeId     String
+  notes       String?
+
+  parent ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  user   User?         @relation(fields: [userId], references: [id])
+  grade  GradeLevel    @relation(fields: [gradeId], references: [id])
+
+  subjectNeeds StudentSubject[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([parentId])
+  @@index([gradeId])
+}
+
+model StudentSubject {
+  id        String @id @default(uuid())
+  studentId String
+  subjectId String
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, subjectId])
+}
+
+// ============================================
+// M2: TUTOR PROFILE
+// ============================================
+
+model TutorProfile {
+  id              String  @id @default(uuid())
+  userId          String  @unique
+  firstName       String
+  lastName        String
+  phone           String?
+  bio             String?
+  experience      Int     @default(0)
+  profilePhotoUrl String?
+  introVideoUrl   String?
+  isActive        Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subjects       TutorSubject[]
+  certifications TutorCertification[]
+  courses        TutorCourse[]
+
+  // M5: Availability
+  availabilityTemplates AvailabilityTemplate[]
+  blockedDates          BlockedDate[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([isActive])
+}
+
+model TutorSubject {
+  id        String @id @default(uuid())
+  tutorId   String
+  subjectId String
+  tutorRate Int // Rate in fils per class
+
+  tutor   TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  subject Subject      @relation(fields: [subjectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tutorId, subjectId])
+  @@index([tutorId])
+  @@index([subjectId])
+}
+
+model TutorCertification {
+  id          String  @id @default(uuid())
+  tutorId     String
+  title       String
+  institution String?
+  year        Int?
+  documentUrl String
+
+  tutor TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([tutorId])
+}
+
+// ============================================
+// M2: CONSULTANT PROFILE
+// ============================================
+
+model ConsultantProfile {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+  firstName String
+  lastName  String
+  phone     String?
+  email     String?
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  demoRequests DemoRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// M4: SUBJECT & GRADE (Reference tables — needed by M2)
+// ============================================
+
+model Subject {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  tutorSubjects      TutorSubject[]
+  studentNeeds       StudentSubject[]
+  demoRequestSubjects DemoRequestSubject[]
+  courses            Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model GradeLevel {
+  id        String @id @default(uuid())
+  name      String @unique
+  sortOrder Int    @unique
+  tierId    String
+
+  tier         GradeTier     @relation(fields: [tierId], references: [id])
+  students     Student[]
+  demoRequests DemoRequest[]
+  courses      Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+  @@index([tierId])
+}
+
+model GradeTier {
+  id              String @id @default(uuid())
+  name            String @unique
+  creditsPerClass Int
+  minGrade        Int
+  maxGrade        Int
+
+  gradeLevels GradeLevel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// M5: AVAILABILITY & SCHEDULING
+// ============================================
+
+model AvailabilityTemplate {
+  id        String @id @default(uuid())
+  tutorId   String
+  dayOfWeek Int    // 0=Sunday, 1=Monday, ..., 6=Saturday
+  startTime String // "HH:mm" in 24hr format
+  endTime   String // "HH:mm" in 24hr format
+
+  tutor TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([tutorId, dayOfWeek, startTime, endTime])
+  @@index([tutorId])
+  @@index([dayOfWeek])
+}
+
+model BlockedDate {
+  id      String   @id @default(uuid())
+  tutorId String
+  date    DateTime @db.Date
+  reason  String?
+
+  tutor TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([tutorId, date])
+  @@index([tutorId])
+}
+
+// ============================================
+// M4: BOARD (Reference table)
+// ============================================
+
+model Board {
+  id       String  @id @default(uuid())
+  name     String  @unique
+  isActive Boolean @default(true)
+
+  demoRequests DemoRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+// ============================================
+// M6: DEMO REQUEST
+// ============================================
+
+model DemoRequest {
+  id       String @id @default(uuid())
+  parentId String
+
+  // Contact info (editable copy from profile)
+  contactEmail String
+  contactPhone String?
+
+  // Child info as text (admin creates child profile later)
+  childFirstName   String
+  childLastName    String
+  childDateOfBirth DateTime?
+
+  // References
+  boardId String
+  gradeId String
+
+  // Scheduling
+  preferredTimeSlot TimeSlotPreference
+  preferredDate     DateTime           @db.Date
+  alternativeDate   DateTime?          @db.Date
+
+  // Notes
+  notes String?
+
+  // Status & assignment
+  status       DemoRequestStatus  @default(PENDING)
+  consultantId String?
+
+  // Relations
+  parent     ParentProfile      @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  board      Board              @relation(fields: [boardId], references: [id])
+  grade      GradeLevel         @relation(fields: [gradeId], references: [id])
+  consultant ConsultantProfile? @relation(fields: [consultantId], references: [id])
+  subjects   DemoRequestSubject[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([status])
+  @@index([consultantId])
+  @@index([createdAt])
+}
+
+model DemoRequestSubject {
+  id            String @id @default(uuid())
+  demoRequestId String
+  subjectId     String
+
+  demoRequest DemoRequest @relation(fields: [demoRequestId], references: [id], onDelete: Cascade)
+  subject     Subject     @relation(fields: [subjectId], references: [id])
+
+  @@unique([demoRequestId, subjectId])
+}
+
+// ============================================
+// M4: COURSE & COURSE MATERIALS
+// ============================================
+
+model Course {
+  id          String    @id @default(uuid())
+  subjectId   String
+  gradeId     String
+  name        String    // e.g., "Mathematics — Grade 10"
+  description String?
+  isActive    Boolean   @default(true)
+
+  subject   Subject    @relation(fields: [subjectId], references: [id])
+  grade     GradeLevel @relation(fields: [gradeId], references: [id])
+  tutors    TutorCourse[]
+  materials CourseMaterial[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([subjectId, gradeId])
+  @@index([subjectId])
+  @@index([gradeId])
+  @@index([isActive])
+}
+
+model TutorCourse {
+  id       String @id @default(uuid())
+  tutorId  String
+  courseId  String
+
+  tutor  TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  course Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([tutorId, courseId])
+  @@index([tutorId])
+  @@index([courseId])
+}
+
+model CourseMaterial {
+  id         String @id @default(uuid())
+  courseId    String
+  title      String
+  fileUrl    String
+  fileType   String // pdf, docx, etc.
+  fileSizeKb Int?
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([courseId])
+}
+
+// ============================================
+// M8: CREDIT WALLET SYSTEM
+// ============================================
+
+enum CreditTransactionType {
+  PURCHASE
+  DEDUCTION
+  ADMIN_ADJUSTMENT
+}
+
+model CreditPackage {
+  id        String  @id @default(uuid())
+  name      String  @unique
+  credits   Int
+  priceInFils Int   // 1 AED = 100 fils
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([isActive])
+}
+
+model CreditTransaction {
+  id          String                @id @default(uuid())
+  parentId    String
+  type        CreditTransactionType
+  amount      Int                   // Positive always — direction determined by type
+  description String?
+
+  parent ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Immutable ledger — no updatedAt, no deletedAt
+
+  @@index([parentId])
+  @@index([type])
+  @@index([createdAt])
+}
