@@ -519,13 +519,25 @@ Class conducted → Status: COMPLETED
 | **Key Entities** | CMSPage |
 | **Integration Points** | None (standalone) |
 
-**Pages:** About Us, Courses, Tutors, How It Works, FAQ, Contact Us, Privacy Policy, Terms & Conditions
+**Pages:** About Us, Features, Tutors, How It Works, Pricing, Contact Us, Privacy Policy, Terms & Conditions
 
-**Sub-features:**
+**V1 (Static Frontend):**
+- All public marketing pages are built as static React components with hardcoded content from client PDF
+- Pages: About, Features, Tutors, Pricing, How It Works, Contact
+- Homepage wired to backend APIs: subjects list (`GET /subjects`), credit packages (`GET /credit-packages`)
+- Contact form submission storage
+
+**V2 (CMS Admin Panel):**
 - Admin: create/edit pages with rich text editor
 - Admin: publish/unpublish pages
 - SEO fields (title, meta description, slug)
-- Contact form submission storage
+- Admin-managed content sections (replaces hardcoded content):
+  - Feature descriptions and value propositions
+  - How It Works steps and process flow
+  - About Us sections (mission, values, team)
+  - Pricing comparison tables and plan details
+  - Tutor qualifications and methodology descriptions
+  - Testimonials and social proof content
 
 ---
 
@@ -645,6 +657,8 @@ These are intentionally deferred but the V1 schema is designed to support them:
 | SMS notifications | M12 extension | ChannelDispatcher pattern |
 | Automated tutor payouts | M16 extension | PayoutRecord table, Stripe Connect |
 | Tutor self-registration | M1/M3 extension | Approval workflow + status field |
+| Advanced credit pricing | M8 extension | CreditRate table, SubjectComplexity enum, ClassType enum, duration-based pricing |
+| Group classes | M7 extension | ClassType on ClassBooking, max students, shared meeting links |
 
 ---
 

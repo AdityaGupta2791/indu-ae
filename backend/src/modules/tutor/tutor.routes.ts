@@ -10,11 +10,11 @@ import {
   certIdParam,
   templateIdParam,
   blockedDateIdParam,
-  tutorSubjectParams,
+  tutorCourseParams,
   updateTutorProfileSchema,
   createCertificationSchema,
   adminUpdateTutorSchema,
-  adminAssignSubjectSchema,
+  adminAssignCourseSchema,
   adminToggleStatusSchema,
   createTemplateSchema,
   createBlockedDateSchema,
@@ -212,21 +212,21 @@ router.get(
 );
 
 router.post(
-  '/admin/tutors/:id/subjects',
+  '/admin/tutors/:id/courses',
   authenticate,
   requireRole(Role.SUPER_ADMIN, Role.ADMIN),
   requirePermission(Permission.TUTOR_MANAGEMENT),
-  validate({ params: tutorIdParam, body: adminAssignSubjectSchema }),
-  controller.adminAssignSubject
+  validate({ params: tutorIdParam, body: adminAssignCourseSchema }),
+  controller.adminAssignCourse
 );
 
 router.delete(
-  '/admin/tutors/:id/subjects/:subjectId',
+  '/admin/tutors/:id/courses/:courseId',
   authenticate,
   requireRole(Role.SUPER_ADMIN, Role.ADMIN),
   requirePermission(Permission.TUTOR_MANAGEMENT),
-  validate({ params: tutorSubjectParams }),
-  controller.adminRemoveSubject
+  validate({ params: tutorCourseParams }),
+  controller.adminRemoveCourse
 );
 
 export default router;

@@ -14,6 +14,8 @@ import {
   ClipboardList,
   Clock,
   Bell,
+  FileText,
+  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -187,14 +189,16 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
         <aside className={`hidden md:block ${isSidebarOpen ? 'col-span-2 lg:col-span-2 xl:col-span-2' : 'col-span-1'} transition-all duration-300 border-r bg-background`}>
           <div className="flex flex-col h-full p-2 gap-1">
             {[
-              { href: "/tutor-dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-              { href: "/tutor-dashboard/classes", label: "Classes", icon: BookOpen, badge: "3" },
-              { href: "/tutor-dashboard/demo-requests", label: "Demo Requests", icon: Calendar, badge: "2" },
-              { href: "/tutor-dashboard/assessments", label: "Assessments", icon: ClipboardList, badge: null },
-              { href: "/tutor-dashboard/earnings", label: "Earnings", icon: BarChart, badge: null },
-              { href: "/tutor-dashboard/messages", label: "Messages", icon: MessageSquare, badge: "2" },
-              { href: "/tutor-dashboard/feedback", label: "Feedback", icon: Star, badge: null },
-              { href: "/tutor-dashboard/availability", label: "Availability", icon: Clock, badge: null },
+              { href: "/tutor-dashboard", label: "Dashboard", icon: LayoutDashboard },
+              { href: "/tutor-dashboard/classes", label: "Classes", icon: BookOpen },
+              { href: "/tutor-dashboard/course-materials", label: "Course Materials", icon: FileText },
+              { href: "/tutor-dashboard/demo-requests", label: "Demo Requests", icon: Calendar },
+              { href: "/tutor-dashboard/bookings", label: "My Bookings", icon: CalendarCheck },
+              { href: "/tutor-dashboard/assessments", label: "Assessments", icon: ClipboardList },
+              { href: "/tutor-dashboard/earnings", label: "Earnings", icon: BarChart },
+              { href: "/tutor-dashboard/messages", label: "Messages", icon: MessageSquare },
+              { href: "/tutor-dashboard/feedback", label: "Feedback", icon: Star },
+              { href: "/tutor-dashboard/availability", label: "Availability", icon: Clock },
             ].map((item) => (
               <Link
                 key={item.href}
@@ -242,14 +246,16 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
               </SheetHeader>
               <nav className="flex flex-col gap-2 mt-6">
                 {[
-                  { icon: LayoutDashboard, label: "Dashboard", href: "/tutor-dashboard", badge: null },
-                  { icon: BookOpen, label: "Classes", href: "/tutor-dashboard/classes", badge: "3" },
-                  { icon: Calendar, label: "Demo Requests", href: "/tutor-dashboard/demo-requests", badge: "2" },
-                  { icon: ClipboardList, label: "Assessments", href: "/tutor-dashboard/assessments", badge: null },
-                  { icon: BarChart, label: "Earnings", href: "/tutor-dashboard/earnings", badge: null },
-                  { icon: MessageSquare, label: "Messages", href: "/tutor-dashboard/messages", badge: "2" },
-                  { icon: Star, label: "Feedback", href: "/tutor-dashboard/feedback", badge: null },
-                  { icon: Clock, label: "Availability", href: "/tutor-dashboard/availability", badge: null },
+                  { icon: LayoutDashboard, label: "Dashboard", href: "/tutor-dashboard" },
+                  { icon: BookOpen, label: "Classes", href: "/tutor-dashboard/classes" },
+                  { icon: FileText, label: "Course Materials", href: "/tutor-dashboard/course-materials" },
+                  { icon: Calendar, label: "Demo Requests", href: "/tutor-dashboard/demo-requests" },
+                  { icon: CalendarCheck, label: "My Bookings", href: "/tutor-dashboard/bookings" },
+                  { icon: ClipboardList, label: "Assessments", href: "/tutor-dashboard/assessments" },
+                  { icon: BarChart, label: "Earnings", href: "/tutor-dashboard/earnings" },
+                  { icon: MessageSquare, label: "Messages", href: "/tutor-dashboard/messages" },
+                  { icon: Star, label: "Feedback", href: "/tutor-dashboard/feedback" },
+                  { icon: Clock, label: "Availability", href: "/tutor-dashboard/availability" },
                 ].map((item) => (
                   <Link
                     key={item.href}

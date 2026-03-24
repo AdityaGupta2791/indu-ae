@@ -13,6 +13,9 @@ import tutorRoutes from './modules/tutor/tutor.routes';
 import demoRequestRoutes from './modules/demo-request/demo-request.routes';
 import courseRoutes from './modules/course/course.routes';
 import walletRoutes from './modules/wallet/wallet.routes';
+import demoBookingRoutes from './modules/demo-booking/demo-booking.routes';
+import classBookingRoutes from './modules/class-booking/class-booking.routes';
+import applicationRoutes from './modules/application/application.routes';
 
 const app = express();
 
@@ -35,10 +38,13 @@ const apiPrefix = `/api/${env.API_VERSION}`;
 app.use(`${apiPrefix}/auth`, authRoutes);
 app.use(`${apiPrefix}`, userRoutes);
 app.use(`${apiPrefix}`, referenceRoutes);
+app.use(`${apiPrefix}`, courseRoutes);  // Must come before tutorRoutes so /tutors/my-courses matches here first
 app.use(`${apiPrefix}`, tutorRoutes);
 app.use(`${apiPrefix}`, demoRequestRoutes);
-app.use(`${apiPrefix}`, courseRoutes);
 app.use(`${apiPrefix}`, walletRoutes);
+app.use(`${apiPrefix}`, demoBookingRoutes);
+app.use(`${apiPrefix}`, classBookingRoutes);
+app.use(`${apiPrefix}`, applicationRoutes);
 
 // 404 handler
 app.use((_req, res) => {

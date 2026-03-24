@@ -55,6 +55,23 @@ export const courseService = {
   },
 };
 
+// Tutor: own assigned courses & materials
+export const tutorCourseService = {
+  async listMyCourses(): Promise<Course[]> {
+    const { data } = await api.get('/tutors/my-courses');
+    return data.data;
+  },
+
+  async addMaterial(courseId: string, payload: { title: string; fileUrl: string; fileType: string; fileSizeKb?: number }): Promise<CourseMaterial> {
+    const { data } = await api.post(`/tutors/courses/${courseId}/materials`, payload);
+    return data.data;
+  },
+
+  async removeMaterial(courseId: string, materialId: string): Promise<void> {
+    await api.delete(`/tutors/courses/${courseId}/materials/${materialId}`);
+  },
+};
+
 // Admin course management
 export const adminCourseService = {
   async list(params: { page?: number; limit?: number; subjectId?: string; gradeId?: string; search?: string } = {}): Promise<{ data: Course[]; meta: PaginationMeta }> {
@@ -93,8 +110,8 @@ export const adminCourseService = {
   },
 
   // Tutor assignment
-  async assignTutor(courseId: string, tutorId: string): Promise<void> {
-    await api.post(`/admin/courses/${courseId}/tutors`, { tutorId });
+  async assignTutor(courseId: string, tutorId: string, tutorRate: number): Promise<void> {
+    await api.post(`/admin/courses/${courseId}/tutors`, { tutorId, tutorRate });
   },
 
   async removeTutor(courseId: string, tutorId: string): Promise<void> {

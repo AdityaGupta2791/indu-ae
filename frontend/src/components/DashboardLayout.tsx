@@ -232,13 +232,11 @@ const navItems = [
     href: "/dashboard/enrolled-classes",
     label: "My Classes",
     icon: BookOpen,
-    badge: "3",
   },
   {
     href: "/dashboard/saved-classes",
     label: "Saved Classes",
     icon: Heart,
-    badge: "7",
   },
   {
     href: "/dashboard/settings",

@@ -147,18 +147,18 @@ export class TutorController {
     }
   }
 
-  async adminAssignSubject(req: Request, res: Response, next: NextFunction) {
+  async adminAssignCourse(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await service.adminAssignSubject(req.params.id as string, req.body);
+      const result = await service.adminAssignCourse(req.params.id as string, req.body);
       sendSuccess(res, result, 201);
     } catch (error) {
       next(error);
     }
   }
 
-  async adminRemoveSubject(req: Request, res: Response, next: NextFunction) {
+  async adminRemoveCourse(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await service.adminRemoveSubject(req.params.id as string, req.params.subjectId as string);
+      const result = await service.adminRemoveCourse(req.params.id as string, req.params.courseId as string);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

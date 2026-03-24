@@ -11,6 +11,8 @@ import {
   Menu,
   HelpCircle,
   Bell,
+  Calendar,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,18 +36,21 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useToast } from "@/hooks/use-toast";
+import { consultantDemoService } from "@/services/demoRequest.service";
 
 interface ConsultantDashboardLayoutProps {
   children: ReactNode;
 }
 
 const navItems = [
-  { href: "/consultant-dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { href: "/consultant-dashboard/tutor-requests", label: "Demo Requests", icon: ClipboardList, badge: "12" },
-  { href: "/consultant-dashboard/allocations", label: "Allocations", icon: UserCheck, badge: null },
-  { href: "/consultant-dashboard/earnings", label: "Earnings", icon: BarChart, badge: null },
-  { href: "/consultant-dashboard/messages", label: "Messages", icon: MessageSquare, badge: "3" },
-  { href: "/consultant-dashboard/feedback", label: "Feedback", icon: Star, badge: null },
+  { href: "/consultant-dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/consultant-dashboard/demo-requests", label: "Demo Requests", icon: ClipboardList },
+  { href: "/consultant-dashboard/demo-bookings", label: "Demo Bookings", icon: Calendar },
+  { href: "/consultant-dashboard/class-bookings", label: "Class Bookings", icon: BookOpen },
+  { href: "/consultant-dashboard/allocations", label: "Allocations", icon: UserCheck },
+  { href: "/consultant-dashboard/earnings", label: "Earnings", icon: BarChart },
+  { href: "/consultant-dashboard/messages", label: "Messages", icon: MessageSquare },
+  { href: "/consultant-dashboard/feedback", label: "Feedback", icon: Star },
 ];
 
 const ConsultantDashboardLayout = ({ children }: ConsultantDashboardLayoutProps) => {
@@ -55,6 +60,13 @@ const ConsultantDashboardLayout = ({ children }: ConsultantDashboardLayoutProps)
   const { toast } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [pendingDemoCount, setPendingDemoCount] = useState(0);
+
+  useEffect(() => {
+    consultantDemoService.list({ status: "PENDING", limit: 1 })
+      .then((res) => setPendingDemoCount(res.meta.total))
+      .catch(() => {});
+  }, [location.pathname]);
 
   useEffect(() => {
     if (isMobile) {
@@ -204,9 +216,9 @@ const ConsultantDashboardLayout = ({ children }: ConsultantDashboardLayoutProps)
                 {isSidebarOpen && (
                   <>
                     <span className="truncate">{item.label}</span>
-                    {item.badge && (
+                    {item.href === "/consultant-dashboard/demo-requests" && pendingDemoCount > 0 && (
                       <Badge className="ml-auto text-xs bg-teal-200 text-teal-700" variant="secondary">
-                        {item.badge}
+                        {pendingDemoCount}
                       </Badge>
                     )}
                   </>
@@ -243,9 +255,9 @@ const ConsultantDashboardLayout = ({ children }: ConsultantDashboardLayoutProps)
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
-                    {item.badge && (
+                    {item.href === "/consultant-dashboard/demo-requests" && pendingDemoCount > 0 && (
                       <Badge className="ml-auto text-xs bg-teal-200 text-teal-700" variant="secondary">
-                        {item.badge}
+                        {pendingDemoCount}
                       </Badge>
                     )}
                   </Link>

@@ -38,6 +38,33 @@ router.get(
 );
 
 // ==========================================
+// TUTOR: MY COURSES & MATERIALS
+// ==========================================
+
+router.get(
+  '/tutors/my-courses',
+  authenticate,
+  requireRole(Role.TUTOR),
+  controller.listTutorCourses
+);
+
+router.post(
+  '/tutors/courses/:id/materials',
+  authenticate,
+  requireRole(Role.TUTOR),
+  validate({ params: courseIdParam, body: createCourseMaterialSchema }),
+  controller.tutorAddMaterial
+);
+
+router.delete(
+  '/tutors/courses/:id/materials/:materialId',
+  authenticate,
+  requireRole(Role.TUTOR),
+  validate({ params: materialIdParam }),
+  controller.tutorRemoveMaterial
+);
+
+// ==========================================
 // ADMIN: GRADE TIERS
 // ==========================================
 

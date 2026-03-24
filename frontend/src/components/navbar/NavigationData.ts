@@ -1,5 +1,23 @@
 
-import { BookOpen, Info, User, Lightbulb, BarChart, Calendar, FileText, Headphones, Award, Briefcase } from 'lucide-react';
+import { BookOpen, Info, User, Lightbulb, BarChart, Calendar, FileText, Headphones, Award, Briefcase, GraduationCap, Star, DollarSign, Phone, Users } from 'lucide-react';
+
+// ==========================================
+// PRIMARY NAV — shown as top-level links
+// ==========================================
+
+export const primaryNavItems = [
+  { title: "Home", href: "/" },
+  { title: "About", href: "/about" },
+  { title: "Features", href: "/features" },
+  { title: "Tutors", href: "/tutors" },
+  { title: "Pricing", href: "/pricing" },
+  { title: "How It Works", href: "/how-it-works" },
+  { title: "Contact", href: "/contact" },
+];
+
+// ==========================================
+// LEGACY DROPDOWN DATA (kept for explore sub-pages)
+// ==========================================
 
 export const exploreClassesItems = [
   {

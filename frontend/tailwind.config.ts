@@ -64,13 +64,13 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				talent: {
-					primary: '#8B5CF6', // Changed to purple like Outschool
-					secondary: '#7E69AB', // Secondary purple
-					tertiary: '#6E59A5', // Tertiary purple
-					dark: '#1A1F2C',     // Dark purple/black
+					primary: '#0D9488',   // Teal 600
+					secondary: '#0F766E', // Teal 700
+					tertiary: '#115E59',  // Teal 800
+					dark: '#1A1F2C',
 					light: '#F8F9FA',
 					muted: '#6B7280',
-					accent: '#9B87F5',   // Changed to accent purple
+					accent: '#14B8A6',    // Teal 500
 					success: '#10B981',
 					warning: '#F59E0B',
 					error: '#EF4444',

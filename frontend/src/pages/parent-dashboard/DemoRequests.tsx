@@ -132,12 +132,10 @@ const DemoRequests = () => {
     cancelled: requests.filter((r) => r.status === "CANCELLED").length,
   }), [requests]);
 
-  const toggleSubject = (subjectId: string) => {
+  const selectSubject = (subjectId: string) => {
     setForm((prev) => ({
       ...prev,
-      subjectIds: prev.subjectIds.includes(subjectId)
-        ? prev.subjectIds.filter((id) => id !== subjectId)
-        : [...prev.subjectIds, subjectId],
+      subjectIds: prev.subjectIds[0] === subjectId ? [] : [subjectId],
     }));
   };
 
@@ -259,14 +257,14 @@ const DemoRequests = () => {
 
                 {/* Subjects */}
                 <div>
-                  <label className="text-sm font-medium">Subjects * (select at least one)</label>
+                  <label className="text-sm font-medium">Subject *</label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {subjects.map((s) => (
                       <Badge
                         key={s.id}
                         variant={form.subjectIds.includes(s.id) ? "default" : "outline"}
                         className={`cursor-pointer ${form.subjectIds.includes(s.id) ? "bg-indigo-600 text-white" : "hover:bg-indigo-50"}`}
-                        onClick={() => toggleSubject(s.id)}
+                        onClick={() => selectSubject(s.id)}
                       >
                         {s.name}
                       </Badge>

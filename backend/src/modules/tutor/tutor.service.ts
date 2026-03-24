@@ -6,7 +6,7 @@ import {
   UpdateTutorProfileDTO,
   CreateCertificationDTO,
   AdminUpdateTutorDTO,
-  AdminAssignSubjectDTO,
+  AdminAssignCourseDTO,
   CreateAvailabilityTemplateDTO,
   CreateBlockedDateDTO,
   TutorSearchQuery,
@@ -41,9 +41,12 @@ export class TutorService {
 
     const where: Record<string, unknown> = { isActive: true, deletedAt: null };
 
-    // Filter by subject
-    if (query.subject) {
-      where.subjects = { some: { subjectId: query.subject } };
+    // Filter by subject and/or grade (via courses)
+    if (query.subject || query.grade) {
+      const courseFilter: Record<string, unknown> = {};
+      if (query.subject) courseFilter.subjectId = query.subject;
+      if (query.grade) courseFilter.gradeId = query.grade;
+      where.courses = { some: { course: courseFilter } };
     }
 
     // Search by name
@@ -72,8 +75,15 @@ export class TutorService {
           profilePhotoUrl: true,
           bio: true,
           experience: true,
-          subjects: {
-            include: { subject: { select: { id: true, name: true } } },
+          courses: {
+            include: {
+              course: {
+                include: {
+                  subject: { select: { id: true, name: true } },
+                  grade: { select: { id: true, name: true } },
+                },
+              },
+            },
           },
         },
       }),
@@ -89,9 +99,12 @@ export class TutorService {
       experience: t.experience,
       rating: null, // M15: Reviews not implemented yet
       totalReviews: 0,
-      subjects: t.subjects.map((ts) => ({
-        id: ts.subject.id,
-        name: ts.subject.name,
+      courses: t.courses.map((tc) => ({
+        id: tc.course.id,
+        name: tc.course.name,
+        subject: tc.course.subject,
+        grade: tc.course.grade,
+        tutorRate: tc.tutorRate,
       })),
     }));
 
@@ -102,8 +115,15 @@ export class TutorService {
     const tutor = await prisma.tutorProfile.findUnique({
       where: { id: tutorProfileId },
       include: {
-        subjects: {
-          include: { subject: { select: { id: true, name: true } } },
+        courses: {
+          include: {
+            course: {
+              include: {
+                subject: { select: { id: true, name: true } },
+                grade: { select: { id: true, name: true } },
+              },
+            },
+          },
         },
         certifications: {
           select: { id: true, title: true, institution: true, year: true },
@@ -125,10 +145,12 @@ export class TutorService {
       experience: tutor.experience,
       rating: null,
       totalReviews: 0,
-      subjects: tutor.subjects.map((ts) => ({
-        id: ts.subject.id,
-        name: ts.subject.name,
-        tutorRate: ts.tutorRate,
+      courses: tutor.courses.map((tc) => ({
+        id: tc.course.id,
+        name: tc.course.name,
+        subject: tc.course.subject,
+        grade: tc.course.grade,
+        tutorRate: tc.tutorRate,
       })),
       certifications: tutor.certifications,
     };
@@ -142,8 +164,15 @@ export class TutorService {
     const tutor = await prisma.tutorProfile.findUnique({
       where: { userId },
       include: {
-        subjects: {
-          include: { subject: { select: { id: true, name: true } } },
+        courses: {
+          include: {
+            course: {
+              include: {
+                subject: { select: { id: true, name: true } },
+                grade: { select: { id: true, name: true } },
+              },
+            },
+          },
         },
         certifications: true,
         user: { select: { email: true, isActive: true, lastLoginAt: true } },
@@ -164,11 +193,13 @@ export class TutorService {
       profilePhotoUrl: tutor.profilePhotoUrl,
       introVideoUrl: tutor.introVideoUrl,
       isActive: tutor.isActive,
-      subjects: tutor.subjects.map((ts) => ({
-        id: ts.id,
-        subjectId: ts.subject.id,
-        subjectName: ts.subject.name,
-        tutorRate: ts.tutorRate,
+      courses: tutor.courses.map((tc) => ({
+        id: tc.id,
+        courseId: tc.course.id,
+        courseName: tc.course.name,
+        subject: tc.course.subject,
+        grade: tc.course.grade,
+        tutorRate: tc.tutorRate,
       })),
       certifications: tutor.certifications,
       lastLoginAt: tutor.user.lastLoginAt,
@@ -201,7 +232,7 @@ export class TutorService {
   async getDashboardSummary(userId: string) {
     const profile = await this.getProfileByUserId(userId);
 
-    const subjectsCount = await prisma.tutorSubject.count({
+    const coursesCount = await prisma.tutorCourse.count({
       where: { tutorId: profile.id },
     });
 
@@ -211,7 +242,7 @@ export class TutorService {
       completedSessions: 0,
       totalEarnings: 0,
       averageRating: null,
-      subjectsCount,
+      coursesCount,
     };
   }
 
@@ -265,8 +296,11 @@ export class TutorService {
 
     const where: Record<string, unknown> = { deletedAt: null };
 
-    if (query.subject) {
-      where.subjects = { some: { subjectId: query.subject } };
+    if (query.subject || query.grade) {
+      const courseFilter: Record<string, unknown> = {};
+      if (query.subject) courseFilter.subjectId = query.subject;
+      if (query.grade) courseFilter.gradeId = query.grade;
+      where.courses = { some: { course: courseFilter } };
     }
 
     if (query.search) {
@@ -289,8 +323,15 @@ export class TutorService {
         orderBy,
         include: {
           user: { select: { email: true, isActive: true, lastLoginAt: true } },
-          subjects: {
-            include: { subject: { select: { id: true, name: true } } },
+          courses: {
+            include: {
+              course: {
+                include: {
+                  subject: { select: { id: true, name: true } },
+                  grade: { select: { id: true, name: true } },
+                },
+              },
+            },
           },
           _count: { select: { certifications: true } },
         },
@@ -311,10 +352,12 @@ export class TutorService {
       isActive: t.isActive,
       lastLoginAt: t.user.lastLoginAt,
       certificationsCount: t._count.certifications,
-      subjects: t.subjects.map((ts) => ({
-        id: ts.subject.id,
-        name: ts.subject.name,
-        tutorRate: ts.tutorRate,
+      courses: t.courses.map((tc) => ({
+        id: tc.course.id,
+        name: tc.course.name,
+        subject: tc.course.subject,
+        grade: tc.course.grade,
+        tutorRate: tc.tutorRate,
       })),
     }));
 
@@ -403,53 +446,60 @@ export class TutorService {
     };
   }
 
-  async adminAssignSubject(tutorProfileId: string, data: AdminAssignSubjectDTO) {
+  async adminAssignCourse(tutorProfileId: string, data: AdminAssignCourseDTO) {
     await this.getProfileById(tutorProfileId);
 
-    // Verify subject exists
-    const subject = await prisma.subject.findUnique({ where: { id: data.subjectId } });
-    if (!subject) throw ApiError.badRequest('INVALID_SUBJECT', 'Subject not found');
+    // Verify course exists
+    const course = await prisma.course.findUnique({ where: { id: data.courseId } });
+    if (!course || course.deletedAt) throw ApiError.badRequest('INVALID_COURSE', 'Course not found');
 
     // Check for duplicate
-    const existing = await prisma.tutorSubject.findUnique({
-      where: { tutorId_subjectId: { tutorId: tutorProfileId, subjectId: data.subjectId } },
+    const existing = await prisma.tutorCourse.findUnique({
+      where: { tutorId_courseId: { tutorId: tutorProfileId, courseId: data.courseId } },
     });
     if (existing) {
-      throw ApiError.conflict('DUPLICATE_ENTRY', 'Subject already assigned to this tutor');
+      throw ApiError.conflict('DUPLICATE_ENTRY', 'Course already assigned to this tutor');
     }
 
-    const assignment = await prisma.tutorSubject.create({
+    const assignment = await prisma.tutorCourse.create({
       data: {
         tutorId: tutorProfileId,
-        subjectId: data.subjectId,
+        courseId: data.courseId,
         tutorRate: data.tutorRate,
       },
-      include: { subject: { select: { name: true } } },
+      include: {
+        course: {
+          include: {
+            subject: { select: { name: true } },
+            grade: { select: { name: true } },
+          },
+        },
+      },
     });
 
     return {
       tutorId: tutorProfileId,
-      subjectId: assignment.subjectId,
-      subjectName: assignment.subject.name,
+      courseId: assignment.courseId,
+      courseName: assignment.course.name,
       tutorRate: assignment.tutorRate,
     };
   }
 
-  async adminRemoveSubject(tutorProfileId: string, subjectId: string) {
+  async adminRemoveCourse(tutorProfileId: string, courseId: string) {
     await this.getProfileById(tutorProfileId);
 
-    const assignment = await prisma.tutorSubject.findUnique({
-      where: { tutorId_subjectId: { tutorId: tutorProfileId, subjectId } },
+    const assignment = await prisma.tutorCourse.findUnique({
+      where: { tutorId_courseId: { tutorId: tutorProfileId, courseId } },
     });
     if (!assignment) {
-      throw ApiError.notFound('Subject assignment not found');
+      throw ApiError.notFound('Course assignment not found');
     }
 
-    await prisma.tutorSubject.delete({
-      where: { tutorId_subjectId: { tutorId: tutorProfileId, subjectId } },
+    await prisma.tutorCourse.delete({
+      where: { tutorId_courseId: { tutorId: tutorProfileId, courseId } },
     });
 
-    return { message: 'Subject assignment removed' };
+    return { message: 'Course assignment removed' };
   }
 
   // ==========================================

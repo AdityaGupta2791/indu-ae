@@ -39,12 +39,12 @@ interface StudentDashboardLayoutProps {
 }
 
 const navItems = [
-  { href: "/student-dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { href: "/student-dashboard/enrolled-classes", label: "My Classes", icon: BookOpen, badge: "3" },
-  { href: "/student-dashboard/saved-classes", label: "Saved Classes", icon: Heart, badge: "7" },
-  { href: "/student-dashboard/assessments", label: "Assessments", icon: ClipboardList, badge: null },
-  { href: "/student-dashboard/messages", label: "Messages", icon: MessageSquare, badge: "2" },
-  { href: "/student-dashboard/help", label: "Help", icon: HelpCircle, badge: null },
+  { href: "/student-dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/student-dashboard/enrolled-classes", label: "My Classes", icon: BookOpen },
+  { href: "/student-dashboard/saved-classes", label: "Saved Classes", icon: Heart },
+  { href: "/student-dashboard/assessments", label: "Assessments", icon: ClipboardList },
+  { href: "/student-dashboard/messages", label: "Messages", icon: MessageSquare },
+  { href: "/student-dashboard/help", label: "Help", icon: HelpCircle },
 ];
 
 const StudentDashboardLayout = ({ children }: StudentDashboardLayoutProps) => {

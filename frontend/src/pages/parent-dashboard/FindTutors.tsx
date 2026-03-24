@@ -362,16 +362,16 @@ const FindTutors = () => {
                         {tutor.experience} {tutor.experience === 1 ? "year" : "years"} experience
                       </p>
 
-                      {/* Subjects */}
-                      {tutor.subjects.length > 0 && (
+                      {/* Courses */}
+                      {tutor.courses.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-3">
-                          {tutor.subjects.map((sub) => (
+                          {tutor.courses.map((course) => (
                             <Badge
-                              key={sub.id}
+                              key={course.id}
                               variant="secondary"
                               className="bg-indigo-50 text-indigo-700 text-xs"
                             >
-                              {sub.name}
+                              {course.name}
                             </Badge>
                           ))}
                         </div>
@@ -503,21 +503,21 @@ const FindTutors = () => {
                 </div>
               )}
 
-              {/* Subjects with rates */}
-              {selectedTutor.subjects.length > 0 && (
+              {/* Courses with rates */}
+              {selectedTutor.courses.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
                     <BookOpen className="h-4 w-4 text-indigo-500" />
-                    Subjects & Rates
+                    Courses
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedTutor.subjects.map((sub) => (
+                    {selectedTutor.courses.map((course) => (
                       <Badge
-                        key={sub.id}
+                        key={course.id}
                         variant="secondary"
                         className="bg-indigo-50 text-indigo-700 text-xs py-1 px-2.5"
                       >
-                        {sub.name} — {sub.tutorRate} credits/hr
+                        {course.subject.name} — {course.grade.name}
                       </Badge>
                     ))}
                   </div>

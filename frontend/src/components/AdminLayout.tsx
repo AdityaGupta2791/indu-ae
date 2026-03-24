@@ -13,6 +13,10 @@ import {
   LogOut,
   Menu,
   HelpCircle,
+  FileText,
+  Video,
+  CalendarCheck,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,16 +40,21 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useToast } from "@/hooks/use-toast";
+import { adminApplicationService } from "@/services/application.service";
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { href: "/admin/users", label: "User Management", icon: Users, badge: "5" },
-  { href: "/admin/tutors", label: "Tutor Management", icon: GraduationCap, badge: null },
-  { href: "/admin/classes", label: "Course Management", icon: BookOpen, badge: null },
-  { href: "/admin/payments", label: "Credits & Wallets", icon: CreditCard, badge: null },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3, badge: null },
-  { href: "/admin/messages", label: "Messages", icon: MessageSquare, badge: "6" },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell, badge: "4" },
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/applications", label: "Applications", icon: ClipboardList },
+  { href: "/admin/users", label: "User Management", icon: Users },
+  { href: "/admin/tutors", label: "Tutor Management", icon: GraduationCap },
+  { href: "/admin/classes", label: "Course Management", icon: BookOpen },
+  { href: "/admin/demo-requests", label: "Demo Requests", icon: FileText },
+  { href: "/admin/demo-bookings", label: "Demo Bookings", icon: Video },
+  { href: "/admin/class-bookings", label: "Class Bookings", icon: CalendarCheck },
+  { href: "/admin/payments", label: "Credits & Wallets", icon: CreditCard },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/messages", label: "Messages", icon: MessageSquare },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell },
 ];
 
 const AdminLayout = () => {
@@ -55,6 +64,13 @@ const AdminLayout = () => {
   const { toast } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [pendingAppsCount, setPendingAppsCount] = useState(0);
+
+  useEffect(() => {
+    adminApplicationService.list({ status: "PENDING", limit: 1 })
+      .then((res) => setPendingAppsCount(res.meta.total))
+      .catch(() => {});
+  }, [location.pathname]);
 
   useEffect(() => {
     if (isMobile) {
@@ -221,9 +237,9 @@ const AdminLayout = () => {
                 {isSidebarOpen && (
                   <>
                     <span className="truncate">{item.label}</span>
-                    {item.badge && (
-                      <Badge className="ml-auto text-xs bg-gray-200 text-gray-700" variant="secondary">
-                        {item.badge}
+                    {item.href === "/admin/applications" && pendingAppsCount > 0 && (
+                      <Badge className="ml-auto text-xs bg-gray-200 text-gray-700">
+                        {pendingAppsCount}
                       </Badge>
                     )}
                   </>
@@ -261,9 +277,9 @@ const AdminLayout = () => {
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
-                    {item.badge && (
-                      <Badge className="ml-auto text-xs bg-gray-200 text-gray-700" variant="secondary">
-                        {item.badge}
+                    {item.href === "/admin/applications" && pendingAppsCount > 0 && (
+                      <Badge className="ml-auto text-xs bg-gray-200 text-gray-700">
+                        {pendingAppsCount}
                       </Badge>
                     )}
                   </Link>

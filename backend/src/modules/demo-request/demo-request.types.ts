@@ -2,7 +2,7 @@ import { DemoRequestStatus, TimeSlotPreference } from '@prisma/client';
 
 export interface CreateDemoRequestDTO {
   contactEmail: string;
-  contactPhone?: string;
+  contactPhone: string;
   childFirstName: string;
   childLastName: string;
   childDateOfBirth?: string;
@@ -13,6 +13,10 @@ export interface CreateDemoRequestDTO {
   preferredDate: string; // ISO date
   alternativeDate?: string;
   notes?: string;
+}
+
+export interface PublicCreateDemoRequestDTO extends CreateDemoRequestDTO {
+  parentName: string;
 }
 
 export interface UpdateDemoRequestStatusDTO {

@@ -51,6 +51,15 @@ export class AuthService {
       return newUser;
     });
 
+    // Link any orphan DemoRequests from public submissions (match by email)
+    const parentProfile = await prisma.parentProfile.findUnique({ where: { userId: user.id } });
+    if (parentProfile) {
+      await prisma.demoRequest.updateMany({
+        where: { contactEmail: data.email.toLowerCase(), parentId: null },
+        data: { parentId: parentProfile.id },
+      });
+    }
+
     // Generate email verification token — store in DB
     const verificationToken = uuidv4();
     await prisma.token.create({

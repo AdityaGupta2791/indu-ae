@@ -143,8 +143,8 @@ const TutorDashboard = () => {
                 trend="neutral"
               />
               <MetricCard
-                title="Subjects"
-                value={String(dashboard?.subjectsCount ?? 0)}
+                title="Courses"
+                value={String(dashboard?.coursesCount ?? 0)}
                 description="Currently Teaching"
                 icon={<BookOpen className="h-4 w-4 text-white" />}
                 iconBg="bg-pink-500"

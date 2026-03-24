@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  
+
   return (
     <footer className="bg-talent-dark text-white pt-16 pb-8">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-10">
+          <div className="col-span-2 lg:col-span-2">
             <Link to="/" className="inline-block mb-6">
               <div className="h-12 w-48 relative">
                 <img
@@ -31,30 +31,30 @@ const Footer = () => {
               <SocialLink icon={<Youtube size={18} />} href="#" />
             </div>
           </div>
-          
+
           <div>
             <h4 className="font-semibold text-lg mb-4">For Families</h4>
             <ul className="space-y-3">
-              <FooterLink href="#" label="Browse Classes" />
-              <FooterLink href="#" label="How It Works" />
-              <FooterLink href="#" label="Testimonials" />
-              <FooterLink href="#" label="Gift Cards" />
-              <FooterLink href="#" label="FAQs" />
+              <FooterLink to="/features" label="Features" />
+              <FooterLink to="/how-it-works" label="How It Works" />
+              <FooterLink to="/tutors" label="Find Tutors" />
+              <FooterLink to="/pricing" label="Pricing" />
+              <FooterLink to="/book-demo" label="Book a Free Demo" />
             </ul>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold text-lg mb-4">For Tutors</h4>
+            <h4 className="font-semibold text-lg mb-4">Company</h4>
             <ul className="space-y-3">
-              <FooterLink href="#" label="Become a Tutor" />
-              <FooterLink href="#" label="Teacher Success" />
-              <FooterLink href="#" label="Teacher Resources" />
-              <FooterLink href="#" label="Earnings Calculator" />
-              <FooterLink href="#" label="Support Center" />
+              <FooterLink to="/about" label="About Us" />
+              <FooterLink to="/for-tutors/become-tutor" label="Become a Tutor" />
+              <FooterLink to="/for-consultants/become-consultant" label="Become a Consultant" />
+              <FooterLink to="/contact" label="Contact Us" />
+              <FooterLink to="/resources/help-center" label="Help Center" />
             </ul>
           </div>
-          
-          <div>
+
+          <div className="col-span-2 md:col-span-1">
             <h4 className="font-semibold text-lg mb-4">Stay Updated</h4>
             <p className="text-gray-400 mb-4 text-sm">
               Subscribe to our newsletter for the latest classes and educational tips.
@@ -72,22 +72,21 @@ const Footer = () => {
               </div>
               <div className="flex items-center text-gray-400 text-sm">
                 <Phone className="h-4 w-4 mr-2" />
-                <a href="tel:+918800INDUAE">+91 8800 INDUAE</a>
+                <a href="tel:+918800463263">+91 8800 463263</a>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="border-t border-gray-800 mt-12 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="text-gray-500 text-sm mb-4 md:mb-0">
-              © {currentYear} Indu AE. All rights reserved.
+              &copy; {currentYear} Indu AE. All rights reserved.
             </div>
             <div className="flex flex-wrap gap-4 md:gap-6 text-sm text-gray-500">
               <a href="#" className="hover:text-white transition-colors">Terms</a>
               <a href="#" className="hover:text-white transition-colors">Privacy</a>
               <a href="#" className="hover:text-white transition-colors">Cookies</a>
-              <a href="#" className="hover:text-white transition-colors">Sitemap</a>
             </div>
           </div>
         </div>
@@ -97,22 +96,22 @@ const Footer = () => {
 };
 
 const SocialLink = ({ icon, href }: { icon: React.ReactNode; href: string }) => (
-  <a 
-    href={href} 
+  <a
+    href={href}
     className="h-9 w-9 rounded-full bg-gray-800 flex items-center justify-center hover:bg-talent-primary transition-colors"
   >
     {icon}
   </a>
 );
 
-const FooterLink = ({ href, label }: { href: string; label: string }) => (
+const FooterLink = ({ to, label }: { to: string; label: string }) => (
   <li>
-    <a 
-      href={href} 
+    <Link
+      to={to}
       className="text-gray-400 hover:text-white transition-colors"
     >
       {label}
-    </a>
+    </Link>
   </li>
 );
 

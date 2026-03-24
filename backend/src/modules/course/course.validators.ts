@@ -53,4 +53,5 @@ export const updateGradeTierSchema = z.object({
 
 export const assignTutorToCourseSchema = z.object({
   tutorId: z.string().uuid(),
+  tutorRate: z.number().int().min(0, 'Rate must be non-negative'),
 });

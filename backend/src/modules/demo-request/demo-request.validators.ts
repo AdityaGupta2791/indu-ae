@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createDemoRequestSchema = z.object({
   contactEmail: z.string().email('Invalid email address'),
-  contactPhone: z.string().optional(),
+  contactPhone: z.string().min(1, 'Phone number is required'),
   childFirstName: z.string().min(1, 'Child first name is required'),
   childLastName: z.string().min(1, 'Child last name is required'),
   childDateOfBirth: z.string().optional(),
@@ -13,6 +13,10 @@ export const createDemoRequestSchema = z.object({
   preferredDate: z.string().min(1, 'Preferred date is required'),
   alternativeDate: z.string().optional(),
   notes: z.string().optional(),
+});
+
+export const publicCreateDemoRequestSchema = createDemoRequestSchema.extend({
+  parentName: z.string().min(1, 'Parent name is required'),
 });
 
 export const updateStatusSchema = z.object({

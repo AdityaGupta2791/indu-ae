@@ -213,7 +213,7 @@ const ConsultantDashboard = () => {
             <span className="font-semibold">3 demos scheduled</span> this week.
           </p>
           <div className="flex flex-wrap gap-3 mt-5">
-            <Link to="/consultant-dashboard/tutor-requests">
+            <Link to="/consultant-dashboard/demo-requests">
               <Button className="bg-teal-700 hover:bg-teal-800 text-white">
                 <ClipboardList className="mr-2 h-4 w-4" /> View Demo Requests
               </Button>
@@ -264,7 +264,7 @@ const ConsultantDashboard = () => {
                 <CardTitle className="text-lg font-semibold text-teal-800">
                   Pending Demo Requests
                 </CardTitle>
-                <Link to="/consultant-dashboard/tutor-requests">
+                <Link to="/consultant-dashboard/demo-requests">
                   <Button variant="ghost" size="sm" className="text-teal-700 hover:text-teal-800 text-xs">
                     View All <ChevronRight className="h-3 w-3 ml-1" />
                   </Button>

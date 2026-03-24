@@ -7,6 +7,7 @@ import { validate } from '../../shared/middlewares/validate';
 import { Role, Permission } from '@prisma/client';
 import {
   createDemoRequestSchema,
+  publicCreateDemoRequestSchema,
   updateStatusSchema,
   demoRequestIdParam,
   demoRequestQuerySchema,
@@ -16,10 +17,21 @@ const router = Router();
 const controller = new DemoRequestController();
 
 // ==========================================
+// PUBLIC ROUTE (no auth)
+// ==========================================
+
+// POST /demo-requests/public — Public demo form (no account needed)
+router.post(
+  '/demo-requests/public',
+  validate({ body: publicCreateDemoRequestSchema }),
+  controller.createPublic
+);
+
+// ==========================================
 // PARENT ROUTES
 // ==========================================
 
-// POST /demo-requests — Submit a demo request
+// POST /demo-requests — Submit a demo request (authenticated parent)
 router.post(
   '/demo-requests',
   authenticate,

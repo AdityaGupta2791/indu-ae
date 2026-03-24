@@ -35,6 +35,17 @@ import TutorAssessments from "@/pages/tutor-dashboard/TutorAssessments";
 import TutorProfile from "@/pages/tutor-dashboard/TutorProfile";
 import TutorAvailability from "@/pages/tutor-dashboard/TutorAvailability";
 import TutorSettings from "@/pages/tutor-dashboard/TutorSettings";
+import TutorCourseMaterials from "@/pages/tutor-dashboard/TutorCourseMaterials";
+import TutorBookings from "@/pages/tutor-dashboard/TutorBookings";
+
+// Public Pages
+import DemoRequestPublic from "@/pages/DemoRequestPublic";
+import About from "@/pages/About";
+import Features from "@/pages/Features";
+import Pricing from "@/pages/Pricing";
+import Contact from "@/pages/Contact";
+import HowItWorksPage from "@/pages/HowItWorks";
+import Tutors from "@/pages/Tutors";
 
 // Explore Pages
 import AcademicSubjects from "@/pages/explore/AcademicSubjects";
@@ -67,15 +78,18 @@ import ParentEnrolledClasses from "@/pages/parent-dashboard/ParentEnrolledClasse
 import ParentAssessments from "@/pages/parent-dashboard/ParentAssessments";
 import ParentSettings from "@/pages/parent-dashboard/ParentSettings";
 import ParentMessages from "@/pages/parent-dashboard/ParentMessages";
+import ParentBookings from "@/pages/parent-dashboard/ParentBookings";
 
 // Consultant Dashboard Pages
 import ConsultantDashboard from "@/pages/consultant-dashboard/ConsultantDashboard";
 import TutorAllocations from "@/pages/consultant-dashboard/TutorAllocations";
 import ConsultantMessages from "@/pages/consultant-dashboard/Messages";
 import ConsultantFeedback from "@/pages/consultant-dashboard/Feedback";
-import TutorRequests from "@/pages/consultant-dashboard/TutorRequests";
+import DemoRequests from "@/pages/consultant-dashboard/DemoRequests";
 import ConsultantEarnings from "@/pages/consultant-dashboard/Earnings";
 import ConsultantSettings from "@/pages/consultant-dashboard/ConsultantSettings";
+import ConsultantDemoBookings from "@/pages/consultant-dashboard/DemoBookings";
+import ConsultantClassBookings from "@/pages/consultant-dashboard/ClassBookings";
 
 // Resources Pages
 import BlogArticles from "@/pages/resources/BlogArticles";
@@ -97,6 +111,10 @@ import Analytics from "@/pages/admin/Analytics";
 import AdminMessages from "@/pages/admin/AdminMessages";
 import AdminNotifications from "@/pages/admin/AdminNotifications";
 import TutorManagement from "@/pages/admin/TutorManagement";
+import AdminDemoRequests from "@/pages/admin/AdminDemoRequests";
+import AdminDemoBookings from "@/pages/admin/AdminDemoBookings";
+import AdminClassBookings from "@/pages/admin/AdminClassBookings";
+import AdminApplications from "@/pages/admin/AdminApplications";
 
 const AppRoutes = () => {
   return (
@@ -108,6 +126,9 @@ const AppRoutes = () => {
       <Route path="/auth/login" element={<RedirectIfAuthenticated><Login /></RedirectIfAuthenticated>} />
       <Route path="/auth/signup" element={<RedirectIfAuthenticated><SignUp /></RedirectIfAuthenticated>} />
       <Route path="/auth/forgot-password" element={<RedirectIfAuthenticated><ForgotPassword /></RedirectIfAuthenticated>} />
+      {/* Public demo form (accessible with or without login) */}
+      <Route path="/book-demo" element={<DemoRequestPublic />} />
+
       <Route path="/auth/verify-email" element={<VerifyEmail />} />
       <Route path="/auth/force-change-password" element={<ForceChangePassword />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
@@ -164,6 +185,10 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="parent"><ParentDemoRequests /></ProtectedRoute>}
       />
       <Route
+        path="/parent-dashboard/bookings"
+        element={<ProtectedRoute requiredRole="parent"><ParentBookings /></ProtectedRoute>}
+      />
+      <Route
         path="/parent-dashboard/credits"
         element={<ProtectedRoute requiredRole="parent"><Credits /></ProtectedRoute>}
       />
@@ -214,6 +239,10 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="tutor"><TutorDemoRequests /></ProtectedRoute>}
       />
       <Route
+        path="/tutor-dashboard/bookings"
+        element={<ProtectedRoute requiredRole="tutor"><TutorBookings /></ProtectedRoute>}
+      />
+      <Route
         path="/tutor-dashboard/assessments"
         element={<ProtectedRoute requiredRole="tutor"><TutorAssessments /></ProtectedRoute>}
       />
@@ -224,6 +253,10 @@ const AppRoutes = () => {
       <Route
         path="/tutor-dashboard/availability"
         element={<ProtectedRoute requiredRole="tutor"><TutorAvailability /></ProtectedRoute>}
+      />
+      <Route
+        path="/tutor-dashboard/course-materials"
+        element={<ProtectedRoute requiredRole="tutor"><TutorCourseMaterials /></ProtectedRoute>}
       />
       <Route
         path="/tutor-dashboard/settings"
@@ -243,9 +276,21 @@ const AppRoutes = () => {
         <Route path="analytics" element={<Analytics />} />
         <Route path="messages" element={<AdminMessages />} />
         <Route path="tutors" element={<TutorManagement />} />
+        <Route path="demo-requests" element={<AdminDemoRequests />} />
+        <Route path="demo-bookings" element={<AdminDemoBookings />} />
+        <Route path="class-bookings" element={<AdminClassBookings />} />
+        <Route path="applications" element={<AdminApplications />} />
         <Route path="notifications" element={<AdminNotifications />} />
       </Route>
       
+      {/* M13: CMS Public Pages */}
+      <Route path="/about" element={<About />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
+      <Route path="/tutors" element={<Tutors />} />
+
       {/* Explore */}
       <Route path="/explore/academic-subjects" element={<AcademicSubjects />} />
       <Route path="/explore/arts-creativity" element={<ArtsCreativity />} />
@@ -273,8 +318,16 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="consultant"><ConsultantDashboard /></ProtectedRoute>}
       />
       <Route
-        path="/consultant-dashboard/tutor-requests"
-        element={<ProtectedRoute requiredRole="consultant"><TutorRequests /></ProtectedRoute>}
+        path="/consultant-dashboard/demo-requests"
+        element={<ProtectedRoute requiredRole="consultant"><DemoRequests /></ProtectedRoute>}
+      />
+      <Route
+        path="/consultant-dashboard/demo-bookings"
+        element={<ProtectedRoute requiredRole="consultant"><ConsultantDemoBookings /></ProtectedRoute>}
+      />
+      <Route
+        path="/consultant-dashboard/class-bookings"
+        element={<ProtectedRoute requiredRole="consultant"><ConsultantClassBookings /></ProtectedRoute>}
       />
       <Route
         path="/consultant-dashboard/allocations"

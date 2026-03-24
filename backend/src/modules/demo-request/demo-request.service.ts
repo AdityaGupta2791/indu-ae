@@ -2,7 +2,7 @@ import { DemoRequestStatus, Role } from '@prisma/client';
 import prisma from '../../config/database';
 import { ApiError } from '../../shared/utils/apiError';
 import { parsePagination, buildPaginationMeta } from '../../shared/utils/pagination';
-import { CreateDemoRequestDTO, DemoRequestQueryDTO } from './demo-request.types';
+import { CreateDemoRequestDTO, PublicCreateDemoRequestDTO, DemoRequestQueryDTO } from './demo-request.types';
 
 // Valid state transitions
 const VALID_TRANSITIONS: Record<DemoRequestStatus, DemoRequestStatus[]> = {
@@ -25,8 +25,9 @@ const demoRequestInclude = {
 function formatDemoRequest(dr: Record<string, unknown>) {
   const raw = dr as {
     id: string;
+    parentName: string;
     contactEmail: string;
-    contactPhone: string | null;
+    contactPhone: string;
     childFirstName: string;
     childLastName: string;
     childDateOfBirth: Date | null;
@@ -40,12 +41,13 @@ function formatDemoRequest(dr: Record<string, unknown>) {
     board: { id: string; name: string };
     grade: { id: string; name: string };
     subjects: { subject: { id: string; name: string } }[];
-    parent: { id: string; firstName: string; lastName: string };
+    parent: { id: string; firstName: string; lastName: string } | null;
     consultant: { id: string; firstName: string; lastName: string } | null;
   };
 
   return {
     id: raw.id,
+    parentName: raw.parentName,
     contactEmail: raw.contactEmail,
     contactPhone: raw.contactPhone,
     childFirstName: raw.childFirstName,
@@ -66,33 +68,66 @@ function formatDemoRequest(dr: Record<string, unknown>) {
   };
 }
 
+// Shared validation for board, grade, subjects
+async function validateReferences(data: { boardId: string; gradeId: string; subjectIds: string[] }) {
+  const board = await prisma.board.findUnique({ where: { id: data.boardId } });
+  if (!board || !board.isActive) throw ApiError.badRequest('INVALID_BOARD', 'Board not found or inactive');
+
+  const grade = await prisma.gradeLevel.findUnique({ where: { id: data.gradeId } });
+  if (!grade) throw ApiError.badRequest('INVALID_GRADE', 'Grade level not found');
+
+  const subjects = await prisma.subject.findMany({
+    where: { id: { in: data.subjectIds }, isActive: true },
+  });
+  if (subjects.length !== data.subjectIds.length) {
+    throw ApiError.badRequest('INVALID_SUBJECT', 'One or more subjects not found or inactive');
+  }
+}
+
 export class DemoRequestService {
   // ==========================================
-  // PARENT: Create demo request
+  // PUBLIC: Create demo request (no auth)
+  // ==========================================
+  async createPublic(data: PublicCreateDemoRequestDTO) {
+    await validateReferences(data);
+
+    const demoRequest = await prisma.demoRequest.create({
+      data: {
+        parentName: data.parentName,
+        contactEmail: data.contactEmail.toLowerCase(),
+        contactPhone: data.contactPhone,
+        childFirstName: data.childFirstName,
+        childLastName: data.childLastName,
+        childDateOfBirth: data.childDateOfBirth ? new Date(data.childDateOfBirth) : undefined,
+        boardId: data.boardId,
+        gradeId: data.gradeId,
+        preferredTimeSlot: data.preferredTimeSlot,
+        preferredDate: new Date(data.preferredDate),
+        alternativeDate: data.alternativeDate ? new Date(data.alternativeDate) : undefined,
+        notes: data.notes,
+        subjects: {
+          create: data.subjectIds.map((subjectId) => ({ subjectId })),
+        },
+      },
+      include: demoRequestInclude,
+    });
+
+    return formatDemoRequest(demoRequest as unknown as Record<string, unknown>);
+  }
+
+  // ==========================================
+  // PARENT: Create demo request (authenticated)
   // ==========================================
   async create(userId: string, data: CreateDemoRequestDTO) {
     const parentProfile = await prisma.parentProfile.findUnique({ where: { userId } });
     if (!parentProfile) throw ApiError.notFound('Parent profile not found');
 
-    // Verify board exists
-    const board = await prisma.board.findUnique({ where: { id: data.boardId } });
-    if (!board || !board.isActive) throw ApiError.badRequest('INVALID_BOARD', 'Board not found or inactive');
-
-    // Verify grade exists
-    const grade = await prisma.gradeLevel.findUnique({ where: { id: data.gradeId } });
-    if (!grade) throw ApiError.badRequest('INVALID_GRADE', 'Grade level not found');
-
-    // Verify subjects exist
-    const subjects = await prisma.subject.findMany({
-      where: { id: { in: data.subjectIds }, isActive: true },
-    });
-    if (subjects.length !== data.subjectIds.length) {
-      throw ApiError.badRequest('INVALID_SUBJECT', 'One or more subjects not found or inactive');
-    }
+    await validateReferences(data);
 
     const demoRequest = await prisma.demoRequest.create({
       data: {
         parentId: parentProfile.id,
+        parentName: `${parentProfile.firstName} ${parentProfile.lastName}`,
         contactEmail: data.contactEmail,
         contactPhone: data.contactPhone,
         childFirstName: data.childFirstName,

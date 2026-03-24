@@ -25,8 +25,8 @@ export interface AdminUpdateTutorDTO {
   profilePhotoUrl?: string;
 }
 
-export interface AdminAssignSubjectDTO {
-  subjectId: string;
+export interface AdminAssignCourseDTO {
+  courseId: string;
   tutorRate: number; // in fils
 }
 
@@ -53,6 +53,7 @@ export interface TutorSearchQuery {
   page?: string;
   limit?: string;
   subject?: string;
+  grade?: string;
   search?: string;
   sort?: 'experience' | 'rate' | 'name';
 }

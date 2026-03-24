@@ -45,10 +45,9 @@ import {
   type AdminTutor,
   type PaginationMeta,
 } from "@/services/tutor.service";
-import { referenceService } from "@/services/user.service";
-import type { Subject } from "@/services/user.service";
+import { adminCourseService, type Course } from "@/services/course.service";
 
-const SUBJECT_COLORS = [
+const COURSE_COLORS = [
   "bg-blue-100 text-blue-800",
   "bg-purple-100 text-purple-800",
   "bg-teal-100 text-teal-800",
@@ -59,8 +58,8 @@ const SUBJECT_COLORS = [
   "bg-amber-100 text-amber-800",
 ];
 
-function getSubjectColor(index: number): string {
-  return SUBJECT_COLORS[index % SUBJECT_COLORS.length];
+function getCourseColor(index: number): string {
+  return COURSE_COLORS[index % COURSE_COLORS.length];
 }
 
 const TutorManagement = () => {
@@ -74,8 +73,8 @@ const TutorManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reference data
-  const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
-  const [subjectsLoaded, setSubjectsLoaded] = useState(false);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [coursesLoaded, setCoursesLoaded] = useState(false);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -89,12 +88,12 @@ const TutorManagement = () => {
   });
   const [editSaving, setEditSaving] = useState(false);
 
-  // Subjects dialog
-  const [subjectsOpen, setSubjectsOpen] = useState(false);
-  const [subjectsTutor, setSubjectsTutor] = useState<AdminTutor | null>(null);
-  const [addSubjectId, setAddSubjectId] = useState("");
-  const [addSubjectRate, setAddSubjectRate] = useState("");
-  const [subjectSaving, setSubjectSaving] = useState(false);
+  // Courses dialog
+  const [coursesOpen, setCoursesOpen] = useState(false);
+  const [coursesTutor, setCoursesTutor] = useState<AdminTutor | null>(null);
+  const [addCourseId, setAddCourseId] = useState("");
+  const [addCourseRate, setAddCourseRate] = useState("");
+  const [courseSaving, setCourseSaving] = useState(false);
 
   // Status toggle loading
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -130,12 +129,12 @@ const TutorManagement = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const loadSubjects = async () => {
-    if (subjectsLoaded) return;
+  const loadCourses = async () => {
+    if (coursesLoaded) return;
     try {
-      const subjects = await referenceService.getSubjects();
-      setAllSubjects(subjects);
-      setSubjectsLoaded(true);
+      const result = await adminCourseService.list({ limit: 200 });
+      setAllCourses(result.data);
+      setCoursesLoaded(true);
     } catch {
       // non-critical
     }
@@ -215,19 +214,19 @@ const TutorManagement = () => {
     }
   };
 
-  // ------- Manage subjects -------
+  // ------- Manage courses -------
 
-  const openSubjectsDialog = (tutor: AdminTutor) => {
-    setSubjectsTutor(tutor);
-    setAddSubjectId("");
-    setAddSubjectRate("");
-    setSubjectsOpen(true);
-    loadSubjects();
+  const openCoursesDialog = (tutor: AdminTutor) => {
+    setCoursesTutor(tutor);
+    setAddCourseId("");
+    setAddCourseRate("");
+    setCoursesOpen(true);
+    loadCourses();
   };
 
-  const handleAssignSubject = async () => {
-    if (!subjectsTutor || !addSubjectId || !addSubjectRate) return;
-    const rate = parseFloat(addSubjectRate);
+  const handleAssignCourse = async () => {
+    if (!coursesTutor || !addCourseId || !addCourseRate) return;
+    const rate = parseFloat(addCourseRate);
     if (isNaN(rate) || rate <= 0) {
       toast({
         title: "Invalid rate",
@@ -236,17 +235,17 @@ const TutorManagement = () => {
       });
       return;
     }
-    setSubjectSaving(true);
+    setCourseSaving(true);
     try {
-      await adminTutorService.assignSubject(subjectsTutor.id, addSubjectId, rate);
-      const subjectName =
-        allSubjects.find((s) => s.id === addSubjectId)?.name || "Subject";
+      await adminTutorService.assignCourse(coursesTutor.id, addCourseId, rate);
+      const courseName =
+        allCourses.find((c) => c.id === addCourseId)?.name || "Course";
       toast({
-        title: "Subject assigned",
-        description: `${subjectName} assigned to ${subjectsTutor.firstName}.`,
+        title: "Course assigned",
+        description: `${courseName} assigned to ${coursesTutor.firstName}.`,
       });
-      setAddSubjectId("");
-      setAddSubjectRate("");
+      setAddCourseId("");
+      setAddCourseRate("");
       // Refresh tutor list & update the dialog tutor
       const result = await adminTutorService.listTutors({
         page: currentPage,
@@ -255,25 +254,25 @@ const TutorManagement = () => {
       });
       setTutors(result.data);
       setMeta(result.meta);
-      const updated = result.data.find((t) => t.id === subjectsTutor.id);
-      if (updated) setSubjectsTutor(updated);
+      const updated = result.data.find((t) => t.id === coursesTutor.id);
+      if (updated) setCoursesTutor(updated);
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })
-          ?.response?.data?.error?.message || "Failed to assign subject.";
+          ?.response?.data?.error?.message || "Failed to assign course.";
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
-      setSubjectSaving(false);
+      setCourseSaving(false);
     }
   };
 
-  const handleRemoveSubject = async (subjectId: string) => {
-    if (!subjectsTutor) return;
+  const handleRemoveCourse = async (courseId: string) => {
+    if (!coursesTutor) return;
     try {
-      await adminTutorService.removeSubject(subjectsTutor.id, subjectId);
+      await adminTutorService.removeCourse(coursesTutor.id, courseId);
       toast({
-        title: "Subject removed",
-        description: `Subject removed from ${subjectsTutor.firstName}.`,
+        title: "Course removed",
+        description: `Course removed from ${coursesTutor.firstName}.`,
       });
       // Refresh
       const result = await adminTutorService.listTutors({
@@ -283,20 +282,20 @@ const TutorManagement = () => {
       });
       setTutors(result.data);
       setMeta(result.meta);
-      const updated = result.data.find((t) => t.id === subjectsTutor.id);
-      if (updated) setSubjectsTutor(updated);
+      const updated = result.data.find((t) => t.id === coursesTutor.id);
+      if (updated) setCoursesTutor(updated);
     } catch {
       toast({
         title: "Error",
-        description: "Failed to remove subject.",
+        description: "Failed to remove course.",
         variant: "destructive",
       });
     }
   };
 
-  // Subjects available for assignment (not already assigned)
-  const availableSubjects = allSubjects.filter(
-    (s) => !subjectsTutor?.subjects.some((ts) => ts.id === s.id)
+  // Courses available for assignment (not already assigned)
+  const availableCourses = allCourses.filter(
+    (c) => !coursesTutor?.courses.some((tc) => tc.id === c.id)
   );
 
   return (
@@ -305,7 +304,7 @@ const TutorManagement = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-800">Tutor Management</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          View and manage tutors, their subjects, rates, and account status
+          View and manage tutors, their courses, rates, and account status
         </p>
       </div>
 
@@ -344,7 +343,7 @@ const TutorManagement = () => {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Subjects</TableHead>
+                      <TableHead>Courses</TableHead>
                       <TableHead>Experience</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
@@ -381,16 +380,16 @@ const TutorManagement = () => {
                           {tutor.email}
                         </TableCell>
 
-                        {/* Subjects */}
+                        {/* Courses */}
                         <TableCell>
-                          <div className="flex flex-wrap gap-1 max-w-[200px]">
-                            {tutor.subjects.length > 0 ? (
-                              tutor.subjects.map((sub, i) => (
+                          <div className="flex flex-wrap gap-1 max-w-[250px]">
+                            {tutor.courses.length > 0 ? (
+                              tutor.courses.map((course, i) => (
                                 <Badge
-                                  key={sub.id}
-                                  className={`text-[10px] font-normal ${getSubjectColor(i)}`}
+                                  key={course.id}
+                                  className={`text-[10px] font-normal ${getCourseColor(i)}`}
                                 >
-                                  {sub.name}
+                                  {course.name}
                                 </Badge>
                               ))
                             ) : (
@@ -440,8 +439,8 @@ const TutorManagement = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => openSubjectsDialog(tutor)}
-                              title="Manage subjects"
+                              onClick={() => openCoursesDialog(tutor)}
+                              title="Manage courses"
                             >
                               <BookOpen className="h-4 w-4" />
                             </Button>
@@ -580,14 +579,14 @@ const TutorManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ==================== Manage Subjects Dialog ==================== */}
+      {/* ==================== Manage Courses Dialog ==================== */}
       <Dialog
-        open={subjectsOpen}
+        open={coursesOpen}
         onOpenChange={(v) => {
-          setSubjectsOpen(v);
+          setCoursesOpen(v);
           if (!v) {
-            setAddSubjectId("");
-            setAddSubjectRate("");
+            setAddCourseId("");
+            setAddCourseRate("");
           }
         }}
       >
@@ -595,41 +594,41 @@ const TutorManagement = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
-              Subjects — {subjectsTutor?.firstName} {subjectsTutor?.lastName}
+              Courses — {coursesTutor?.firstName} {coursesTutor?.lastName}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Current subjects */}
+            {/* Current courses */}
             <div>
-              <Label className="text-sm font-medium">Current Subjects</Label>
-              {subjectsTutor?.subjects.length === 0 ? (
+              <Label className="text-sm font-medium">Assigned Courses</Label>
+              {coursesTutor?.courses.length === 0 ? (
                 <p className="text-sm text-muted-foreground mt-2">
-                  No subjects assigned yet.
+                  No courses assigned yet.
                 </p>
               ) : (
                 <div className="space-y-2 mt-2">
-                  {subjectsTutor?.subjects.map((sub, i) => (
+                  {coursesTutor?.courses.map((course, i) => (
                     <div
-                      key={sub.id}
+                      key={course.id}
                       className="flex items-center justify-between rounded-md border px-3 py-2"
                     >
                       <div className="flex items-center gap-2">
                         <Badge
-                          className={`text-xs ${getSubjectColor(i)}`}
+                          className={`text-xs ${getCourseColor(i)}`}
                         >
-                          {sub.name}
+                          {course.name}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                          Rate: AED {sub.tutorRate}/hr
+                          Rate: AED {(course.tutorRate / 100).toFixed(0)}/class
                         </span>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleRemoveSubject(sub.id)}
-                        title="Remove subject"
+                        onClick={() => handleRemoveCourse(course.id)}
+                        title="Remove course"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -639,49 +638,48 @@ const TutorManagement = () => {
               )}
             </div>
 
-            {/* Add Subject form */}
+            {/* Add Course form */}
             <div className="border-t pt-4">
-              <Label className="text-sm font-medium">Add Subject</Label>
+              <Label className="text-sm font-medium">Add Course</Label>
               <div className="flex items-end gap-2 mt-2">
                 <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Subject</Label>
-                  <Select value={addSubjectId} onValueChange={setAddSubjectId}>
+                  <Label className="text-xs text-muted-foreground">Course</Label>
+                  <Select value={addCourseId} onValueChange={setAddCourseId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select subject" />
+                      <SelectValue placeholder="Select course" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableSubjects.length === 0 ? (
+                      {availableCourses.length === 0 ? (
                         <SelectItem value="__none" disabled>
-                          No more subjects available
+                          No more courses available
                         </SelectItem>
                       ) : (
-                        availableSubjects.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
+                        availableCourses.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
                           </SelectItem>
                         ))
                       )}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="w-28 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Rate (AED/hr)</Label>
+                <div className="w-32 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Rate (fils/class)</Label>
                   <Input
                     type="number"
                     min={0}
-                    step="0.01"
-                    value={addSubjectRate}
-                    onChange={(e) => setAddSubjectRate(e.target.value)}
-                    placeholder="0.00"
+                    value={addCourseRate}
+                    onChange={(e) => setAddCourseRate(e.target.value)}
+                    placeholder="5000"
                   />
                 </div>
                 <Button
                   size="sm"
-                  onClick={handleAssignSubject}
-                  disabled={subjectSaving || !addSubjectId || !addSubjectRate}
+                  onClick={handleAssignCourse}
+                  disabled={courseSaving || !addCourseId || !addCourseRate}
                   className="shrink-0"
                 >
-                  {subjectSaving ? (
+                  {courseSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>

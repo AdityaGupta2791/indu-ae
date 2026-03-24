@@ -4,6 +4,14 @@ import api from './api';
 // TYPES
 // ==========================================
 
+export interface TutorCourseInfo {
+  id: string;
+  name: string;
+  subject: { id: string; name: string };
+  grade: { id: string; name: string };
+  tutorRate: number;
+}
+
 export interface TutorSearchResult {
   id: string;
   firstName: string;
@@ -13,13 +21,21 @@ export interface TutorSearchResult {
   experience: number;
   rating: number | null;
   totalReviews: number;
-  subjects: { id: string; name: string }[];
+  courses: TutorCourseInfo[];
 }
 
 export interface TutorPublicProfile extends TutorSearchResult {
   introVideoUrl: string | null;
-  subjects: { id: string; name: string; tutorRate: number }[];
   certifications: { id: string; title: string; institution: string | null; year: number | null }[];
+}
+
+export interface TutorOwnCourse {
+  id: string;
+  courseId: string;
+  courseName: string;
+  subject: { id: string; name: string };
+  grade: { id: string; name: string };
+  tutorRate: number;
 }
 
 export interface TutorOwnProfile {
@@ -34,7 +50,7 @@ export interface TutorOwnProfile {
   profilePhotoUrl: string | null;
   introVideoUrl: string | null;
   isActive: boolean;
-  subjects: { id: string; subjectId: string; subjectName: string; tutorRate: number }[];
+  courses: TutorOwnCourse[];
   certifications: TutorCertification[];
   lastLoginAt: string | null;
 }
@@ -54,7 +70,7 @@ export interface TutorDashboardSummary {
   completedSessions: number;
   totalEarnings: number;
   averageRating: number | null;
-  subjectsCount: number;
+  coursesCount: number;
 }
 
 export interface AvailabilityTemplate {
@@ -99,7 +115,7 @@ export interface AdminTutor {
   isActive: boolean;
   lastLoginAt: string | null;
   certificationsCount: number;
-  subjects: { id: string; name: string; tutorRate: number }[];
+  courses: TutorCourseInfo[];
 }
 
 // ==========================================
@@ -107,11 +123,12 @@ export interface AdminTutor {
 // ==========================================
 
 export const tutorSearchService = {
-  async search(params: { page?: number; limit?: number; subject?: string; search?: string; sort?: string } = {}): Promise<{ data: TutorSearchResult[]; meta: PaginationMeta }> {
+  async search(params: { page?: number; limit?: number; subject?: string; grade?: string; search?: string; sort?: string } = {}): Promise<{ data: TutorSearchResult[]; meta: PaginationMeta }> {
     const query = new URLSearchParams();
     if (params.page) query.set('page', String(params.page));
     if (params.limit) query.set('limit', String(params.limit));
     if (params.subject) query.set('subject', params.subject);
+    if (params.grade) query.set('grade', params.grade);
     if (params.search) query.set('search', params.search);
     if (params.sort) query.set('sort', params.sort);
     const { data } = await api.get(`/tutors?${query.toString()}`);
@@ -120,6 +137,11 @@ export const tutorSearchService = {
 
   async getPublicProfile(tutorId: string): Promise<TutorPublicProfile> {
     const { data } = await api.get(`/tutors/${tutorId}`);
+    return data.data;
+  },
+
+  async getAvailability(tutorId: string, date: string): Promise<Array<{ date: string; startTime: string; endTime: string; dayName: string }>> {
+    const { data } = await api.get(`/tutors/${tutorId}/availability?startDate=${date}&endDate=${date}`);
     return data.data;
   },
 };
@@ -227,11 +249,11 @@ export const adminTutorService = {
     return data.data;
   },
 
-  async assignSubject(tutorId: string, subjectId: string, tutorRate: number): Promise<void> {
-    await api.post(`/admin/tutors/${tutorId}/subjects`, { subjectId, tutorRate });
+  async assignCourse(tutorId: string, courseId: string, tutorRate: number): Promise<void> {
+    await api.post(`/admin/tutors/${tutorId}/courses`, { courseId, tutorRate });
   },
 
-  async removeSubject(tutorId: string, subjectId: string): Promise<void> {
-    await api.delete(`/admin/tutors/${tutorId}/subjects/${subjectId}`);
+  async removeCourse(tutorId: string, courseId: string): Promise<void> {
+    await api.delete(`/admin/tutors/${tutorId}/courses/${courseId}`);
   },
 };

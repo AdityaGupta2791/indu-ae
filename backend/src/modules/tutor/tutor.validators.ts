@@ -23,9 +23,9 @@ export const blockedDateIdParam = z.object({
   id: z.string().uuid('Invalid blocked date ID'),
 });
 
-export const tutorSubjectParams = z.object({
+export const tutorCourseParams = z.object({
   id: z.string().uuid('Invalid tutor ID'),
-  subjectId: z.string().uuid('Invalid subject ID'),
+  courseId: z.string().uuid('Invalid course ID'),
 });
 
 // ==========================================
@@ -60,8 +60,8 @@ export const adminUpdateTutorSchema = z.object({
   profilePhotoUrl: z.string().url().optional(),
 });
 
-export const adminAssignSubjectSchema = z.object({
-  subjectId: z.string().uuid(),
+export const adminAssignCourseSchema = z.object({
+  courseId: z.string().uuid(),
   tutorRate: z.number().int().min(0, 'Rate must be non-negative'),
 });
 
@@ -103,6 +103,7 @@ export const tutorSearchQuerySchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
   subject: z.string().uuid().optional(),
+  grade: z.string().uuid().optional(),
   search: z.string().optional(),
   sort: z.enum(['experience', 'rate', 'name']).optional(),
 });

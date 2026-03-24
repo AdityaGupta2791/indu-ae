@@ -86,7 +86,7 @@ export async function cleanupUser(userId: string) {
       await prisma.availabilityTemplate.deleteMany({ where: { tutorId: tutorProfile.id } });
       await prisma.blockedDate.deleteMany({ where: { tutorId: tutorProfile.id } });
       await prisma.tutorCertification.deleteMany({ where: { tutorId: tutorProfile.id } });
-      await prisma.tutorSubject.deleteMany({ where: { tutorId: tutorProfile.id } });
+      await prisma.tutorCourse.deleteMany({ where: { tutorId: tutorProfile.id } });
       await prisma.tutorProfile.delete({ where: { userId } });
     }
 

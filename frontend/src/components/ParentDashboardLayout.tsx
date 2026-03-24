@@ -6,6 +6,7 @@ import {
   Users,
   Search,
   Calendar,
+  CalendarCheck,
   CreditCard,
   BookOpen,
   ClipboardList,
@@ -42,14 +43,15 @@ interface ParentDashboardLayoutProps {
 }
 
 const navItems = [
-  { href: "/parent-dashboard", label: "Dashboard", icon: LayoutDashboard, badge: null },
-  { href: "/parent-dashboard/children", label: "My Children", icon: Users, badge: null },
-  { href: "/parent-dashboard/find-tutors", label: "Find Tutors", icon: Search, badge: null },
-  { href: "/parent-dashboard/demo-requests", label: "Demo Requests", icon: Calendar, badge: "2" },
-  { href: "/parent-dashboard/credits", label: "Credits", icon: CreditCard, badge: null },
-  { href: "/parent-dashboard/enrolled-classes", label: "Enrolled Classes", icon: BookOpen, badge: "3" },
-  { href: "/parent-dashboard/assessments", label: "Assessments", icon: ClipboardList, badge: null },
-  { href: "/parent-dashboard/messages", label: "Messages", icon: MessageSquare, badge: "2" },
+  { href: "/parent-dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/parent-dashboard/children", label: "My Children", icon: Users },
+  { href: "/parent-dashboard/find-tutors", label: "Find Tutors", icon: Search },
+  { href: "/parent-dashboard/demo-requests", label: "Demo Requests", icon: Calendar },
+  { href: "/parent-dashboard/bookings", label: "My Bookings", icon: CalendarCheck },
+  { href: "/parent-dashboard/credits", label: "Credits", icon: CreditCard },
+  { href: "/parent-dashboard/enrolled-classes", label: "Enrolled Classes", icon: BookOpen },
+  { href: "/parent-dashboard/assessments", label: "Assessments", icon: ClipboardList },
+  { href: "/parent-dashboard/messages", label: "Messages", icon: MessageSquare },
 ];
 
 const ParentDashboardLayout = ({ children }: ParentDashboardLayoutProps) => {
@@ -195,14 +197,7 @@ const ParentDashboardLayout = ({ children }: ParentDashboardLayoutProps) => {
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {isSidebarOpen && (
-                  <>
-                    <span className="truncate">{item.label}</span>
-                    {item.badge && (
-                      <Badge className="ml-auto text-xs bg-indigo-200 text-indigo-700" variant="secondary">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </>
+                  <span className="truncate">{item.label}</span>
                 )}
               </Link>
             ))}
@@ -237,11 +232,6 @@ const ParentDashboardLayout = ({ children }: ParentDashboardLayoutProps) => {
                   >
                     <item.icon className="h-4 w-4" />
                     <span>{item.label}</span>
-                    {item.badge && (
-                      <Badge className="ml-auto text-xs bg-indigo-200 text-indigo-700" variant="secondary">
-                        {item.badge}
-                      </Badge>
-                    )}
                   </Link>
                 ))}
               </nav>

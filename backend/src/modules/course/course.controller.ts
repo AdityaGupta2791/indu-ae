@@ -90,6 +90,37 @@ export class CourseController {
   }
 
   // ==========================================
+  // TUTOR: MY COURSES & MATERIALS
+  // ==========================================
+
+  async listTutorCourses(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await service.listTutorCourses(req.user!.id);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async tutorAddMaterial(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await service.tutorAddMaterial(req.user!.id, req.params.id as string, req.body);
+      sendSuccess(res, result, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async tutorRemoveMaterial(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await service.tutorRemoveMaterial(req.user!.id, req.params.id as string, req.params.materialId as string);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ==========================================
   // ADMIN: GRADE TIERS
   // ==========================================
 
@@ -117,7 +148,7 @@ export class CourseController {
 
   async assignTutorToCourse(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await service.assignTutorToCourse(req.params.id as string, req.body.tutorId);
+      const result = await service.assignTutorToCourse(req.params.id as string, req.body.tutorId, req.body.tutorRate);
       sendSuccess(res, result, 201);
     } catch (error) {
       next(error);

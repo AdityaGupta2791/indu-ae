@@ -194,36 +194,8 @@ async function main() {
   }
   console.log(`${boards.length} boards created`);
 
-  // 6. Assign subjects to test tutor
+  // 6. Get test tutor profile for later course assignments
   const testTutorProfile = await prisma.tutorProfile.findFirst({ where: { userId: tutorUser.id } });
-  if (testTutorProfile) {
-    const mathSubject = await prisma.subject.findUnique({ where: { name: 'Mathematics' } });
-    const physicsSubject = await prisma.subject.findUnique({ where: { name: 'Physics' } });
-    const englishSubject = await prisma.subject.findUnique({ where: { name: 'English' } });
-
-    if (mathSubject) {
-      await prisma.tutorSubject.upsert({
-        where: { tutorId_subjectId: { tutorId: testTutorProfile.id, subjectId: mathSubject.id } },
-        update: {},
-        create: { tutorId: testTutorProfile.id, subjectId: mathSubject.id, tutorRate: 5000 }, // 50 AED
-      });
-    }
-    if (physicsSubject) {
-      await prisma.tutorSubject.upsert({
-        where: { tutorId_subjectId: { tutorId: testTutorProfile.id, subjectId: physicsSubject.id } },
-        update: {},
-        create: { tutorId: testTutorProfile.id, subjectId: physicsSubject.id, tutorRate: 6000 }, // 60 AED
-      });
-    }
-    if (englishSubject) {
-      await prisma.tutorSubject.upsert({
-        where: { tutorId_subjectId: { tutorId: testTutorProfile.id, subjectId: englishSubject.id } },
-        update: {},
-        create: { tutorId: testTutorProfile.id, subjectId: englishSubject.id, tutorRate: 4500 }, // 45 AED
-      });
-    }
-    console.log('Test tutor assigned to Mathematics, Physics, English');
-  }
 
   // 7. Create sample Courses (Subject + GradeLevel)
   const allGrades = await prisma.gradeLevel.findMany({ orderBy: { sortOrder: 'asc' } });
@@ -265,13 +237,22 @@ async function main() {
     const physicsGrade9 = await prisma.course.findFirst({
       where: { subject: { name: 'Physics' }, grade: { name: 'Grade 9' } },
     });
+    const englishGrade3 = await prisma.course.findFirst({
+      where: { subject: { name: 'English' }, grade: { name: 'Grade 3' } },
+    });
 
-    for (const course of [mathGrade5, mathGrade10, physicsGrade9]) {
+    const courseRates: [typeof mathGrade5, number][] = [
+      [mathGrade5, 5000],    // 50 AED
+      [mathGrade10, 6000],   // 60 AED
+      [physicsGrade9, 5500], // 55 AED
+      [englishGrade3, 4500], // 45 AED
+    ];
+    for (const [course, rate] of courseRates) {
       if (course) {
         await prisma.tutorCourse.upsert({
           where: { tutorId_courseId: { tutorId: testTutorProfile.id, courseId: course.id } },
           update: {},
-          create: { tutorId: testTutorProfile.id, courseId: course.id },
+          create: { tutorId: testTutorProfile.id, courseId: course.id, tutorRate: rate },
         });
       }
     }

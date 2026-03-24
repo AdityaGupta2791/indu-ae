@@ -276,6 +276,86 @@ export class CourseService {
   }
 
   // ==========================================
+  // TUTOR: MY COURSES & MATERIALS
+  // ==========================================
+
+  async listTutorCourses(userId: string) {
+    const tutor = await prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw ApiError.notFound('Tutor profile not found');
+
+    const assignments = await prisma.tutorCourse.findMany({
+      where: { tutorId: tutor.id },
+      include: {
+        course: {
+          include: {
+            subject: { select: { id: true, name: true } },
+            grade: { select: { id: true, name: true } },
+            materials: {
+              select: { id: true, title: true, fileUrl: true, fileType: true, fileSizeKb: true, createdAt: true },
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        },
+      },
+    });
+
+    return assignments
+      .filter((a) => !a.course.deletedAt && a.course.isActive)
+      .map((a) => ({
+        id: a.course.id,
+        name: a.course.name,
+        description: a.course.description,
+        subject: a.course.subject,
+        grade: a.course.grade,
+        isActive: a.course.isActive,
+        materials: a.course.materials,
+      }));
+  }
+
+  async tutorAddMaterial(userId: string, courseId: string, data: CreateCourseMaterialDTO) {
+    const tutor = await prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw ApiError.notFound('Tutor profile not found');
+
+    // Verify tutor is assigned to this course
+    const assignment = await prisma.tutorCourse.findUnique({
+      where: { tutorId_courseId: { tutorId: tutor.id, courseId } },
+    });
+    if (!assignment) throw ApiError.forbidden('You are not assigned to this course');
+
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course || course.deletedAt) throw ApiError.notFound('Course not found');
+
+    return prisma.courseMaterial.create({
+      data: {
+        courseId,
+        title: data.title,
+        fileUrl: data.fileUrl,
+        fileType: data.fileType,
+        fileSizeKb: data.fileSizeKb,
+      },
+    });
+  }
+
+  async tutorRemoveMaterial(userId: string, courseId: string, materialId: string) {
+    const tutor = await prisma.tutorProfile.findUnique({ where: { userId } });
+    if (!tutor) throw ApiError.notFound('Tutor profile not found');
+
+    // Verify tutor is assigned to this course
+    const assignment = await prisma.tutorCourse.findUnique({
+      where: { tutorId_courseId: { tutorId: tutor.id, courseId } },
+    });
+    if (!assignment) throw ApiError.forbidden('You are not assigned to this course');
+
+    const material = await prisma.courseMaterial.findUnique({ where: { id: materialId } });
+    if (!material || material.courseId !== courseId) {
+      throw ApiError.notFound('Course material not found');
+    }
+
+    await prisma.courseMaterial.delete({ where: { id: materialId } });
+    return { message: 'Material removed' };
+  }
+
+  // ==========================================
   // ADMIN: GRADE TIERS
   // ==========================================
 
@@ -322,7 +402,7 @@ export class CourseService {
   // ADMIN: TUTOR-COURSE ASSIGNMENT
   // ==========================================
 
-  async assignTutorToCourse(courseId: string, tutorId: string) {
+  async assignTutorToCourse(courseId: string, tutorId: string, tutorRate: number) {
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course || course.deletedAt) throw ApiError.notFound('Course not found');
 
@@ -336,7 +416,7 @@ export class CourseService {
       throw ApiError.conflict('DUPLICATE_ENTRY', 'Tutor is already assigned to this course');
     }
 
-    await prisma.tutorCourse.create({ data: { tutorId, courseId } });
+    await prisma.tutorCourse.create({ data: { tutorId, courseId, tutorRate } });
 
     return { message: 'Tutor assigned to course' };
   }

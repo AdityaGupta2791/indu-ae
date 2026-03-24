@@ -5,7 +5,17 @@ import { sendSuccess } from '../../shared/utils/apiResponse';
 const service = new DemoRequestService();
 
 export class DemoRequestController {
-  // PARENT: Submit demo request
+  // PUBLIC: Submit demo request (no auth needed)
+  async createPublic(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await service.createPublic(req.body);
+      sendSuccess(res, result, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PARENT: Submit demo request (authenticated)
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await service.create(req.user!.id, req.body);

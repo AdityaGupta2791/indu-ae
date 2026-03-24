@@ -359,8 +359,8 @@ const TutorProfile = () => {
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <BookOpen className="h-4 w-4" />
                     <span>
-                      {profile.subjects.length}{" "}
-                      {profile.subjects.length === 1 ? "subject" : "subjects"}
+                      {profile.courses.length}{" "}
+                      {profile.courses.length === 1 ? "course" : "courses"}
                     </span>
                   </div>
                 </div>
@@ -438,34 +438,34 @@ const TutorProfile = () => {
           </Card>
         )}
 
-        {/* Subjects with Rates */}
+        {/* Courses & Rates */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-teal-500" />
-              Subjects & Rates
+              Courses & Rates
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {profile.subjects.length === 0 ? (
+            {profile.courses.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No subjects assigned yet.
+                No courses assigned yet.
               </p>
             ) : (
               <div className="flex flex-wrap gap-3">
-                {profile.subjects.map((subject) => (
+                {profile.courses.map((course) => (
                   <div
-                    key={subject.id || subject.subjectId}
+                    key={course.id || course.courseId}
                     className="flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2"
                   >
                     <span className="text-sm font-medium text-teal-800">
-                      {subject.subjectName}
+                      {course.courseName}
                     </span>
                     <Badge
                       variant="outline"
                       className="text-xs border-teal-300 text-teal-700"
                     >
-                      AED {subject.tutorRate}/hr
+                      AED {(course.tutorRate / 100).toFixed(0)}/class
                     </Badge>
                   </div>
                 ))}
