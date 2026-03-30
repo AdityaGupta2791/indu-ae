@@ -381,6 +381,16 @@ export class EnrollmentService {
             throw err;
           }
         } else if (balance >= enrollment.creditsPerSession) {
+          // Pre-check: skip if session already exists for this date+time (avoids transaction overhead)
+          const existingSession = await prisma.enrollmentSession.findFirst({
+            where: { enrollmentId, scheduledDate: new Date(dateStr + 'T12:00:00Z'), scheduledStart: slotTime },
+          });
+          if (existingSession) {
+            lastDate = new Date(currentDate);
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+          }
+
           try {
             await prisma.$transaction(async (tx) => {
               const session = await tx.enrollmentSession.create({
@@ -442,6 +452,13 @@ export class EnrollmentService {
   async create(userId: string, data: CreateEnrollmentDTO) {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
     const parentTz = user?.timezone || 'Asia/Dubai';
+
+    // Validate timezone is a real IANA timezone
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: parentTz });
+    } catch {
+      throw ApiError.badRequest('INVALID_TIMEZONE', `Invalid timezone: ${parentTz}. Please update your timezone in settings.`);
+    }
 
     const parent = await prisma.parentProfile.findUnique({ where: { userId } });
     if (!parent) throw ApiError.notFound('Parent profile not found');
@@ -629,7 +646,7 @@ export class EnrollmentService {
       throw ApiError.badRequest('PAUSE_LIMIT', `You've used all ${EnrollmentService.MAX_PAUSES_PER_MONTH} pauses for this month. You can pause again next month.`);
     }
 
-    await this.refundFutureSessions(enrollmentId);
+    await this.refundFutureSessions(enrollmentId, false, 'Refund (paused by parent)');
 
     const newCount = effectiveCount + 1;
     return prisma.enrollment.update({
@@ -696,7 +713,7 @@ export class EnrollmentService {
       throw ApiError.badRequest('INVALID_STATUS', 'Enrollment is already cancelled');
     }
 
-    await this.refundFutureSessions(enrollmentId, true);
+    await this.refundFutureSessions(enrollmentId, true, 'Refund (cancelled by parent)');
     await this.deleteZoomMeeting(enrollment);
 
     return prisma.enrollment.update({
@@ -1062,7 +1079,7 @@ export class EnrollmentService {
       throw ApiError.badRequest('INVALID_STATUS', 'Enrollment is already cancelled');
     }
 
-    await this.refundFutureSessions(enrollmentId, true);
+    await this.refundFutureSessions(enrollmentId, true, 'Refund (cancelled by admin)');
     await this.deleteZoomMeeting(enrollment);
 
     return prisma.enrollment.update({
@@ -1083,7 +1100,7 @@ export class EnrollmentService {
       throw ApiError.badRequest('INVALID_STATUS', 'Only active enrollments can be paused');
     }
 
-    await this.refundFutureSessions(enrollmentId);
+    await this.refundFutureSessions(enrollmentId, false, 'Refund (paused by admin)');
 
     return prisma.enrollment.update({
       where: { id: enrollmentId },
@@ -1188,9 +1205,13 @@ export class EnrollmentService {
   // HELPER: REFUND FUTURE SESSIONS
   // ==========================================
 
-  private async refundFutureSessions(enrollmentId: string, refundAll = false) {
+  private async refundFutureSessions(enrollmentId: string, refundAll = false, reason = 'Refund') {
     const now = new Date();
-    const cutoff = refundAll ? now : new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    // When refunding all (cancel), use start of today to catch all sessions including today's
+    // scheduledDate is stored at T12:00:00Z, so use T00:00:00Z to include today
+    const cutoff = refundAll
+      ? new Date(now.toISOString().split('T')[0] + 'T00:00:00Z')
+      : new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const futureSessions = await prisma.enrollmentSession.findMany({
       where: {
@@ -1208,7 +1229,7 @@ export class EnrollmentService {
             parentId: session.enrollment.parentId,
             type: 'ADMIN_ADJUSTMENT',
             amount: session.creditsCharged,
-            description: `Refund: session ${this.formatDate(session.scheduledDate)}`,
+            description: `${reason}: session ${this.formatDate(session.scheduledDate)}`,
           },
         });
       }

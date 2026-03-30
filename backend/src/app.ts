@@ -17,6 +17,7 @@ import demoBookingRoutes from './modules/demo-booking/demo-booking.routes';
 import applicationRoutes from './modules/application/application.routes';
 import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 import paymentRoutes from './modules/payment/payment.routes';
+import recordingRoutes from './modules/recording/recording.routes';
 
 const app = express();
 
@@ -27,8 +28,9 @@ app.use(cors({
   credentials: true,  // Allow cookies (refresh token)
 }));
 
-// Stripe webhook needs raw body for signature verification — must come BEFORE express.json()
+// Webhook endpoints need raw body for signature verification — must come BEFORE express.json()
 app.use(`/api/${env.API_VERSION}/payments/webhook`, express.raw({ type: 'application/json' }));
+app.use(`/api/${env.API_VERSION}/recordings/webhook`, express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -51,6 +53,7 @@ app.use(`${apiPrefix}`, demoBookingRoutes);
 app.use(`${apiPrefix}`, applicationRoutes);
 app.use(`${apiPrefix}`, enrollmentRoutes);
 app.use(`${apiPrefix}`, paymentRoutes);
+app.use(`${apiPrefix}`, recordingRoutes);
 
 // 404 handler
 app.use((_req, res) => {

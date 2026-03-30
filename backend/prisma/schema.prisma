@@ -652,6 +652,7 @@ model DemoBooking {
   tutor       TutorProfile      @relation(fields: [tutorId], references: [id])
   consultant  ConsultantProfile @relation(fields: [consultantId], references: [id])
   subject     Subject           @relation(fields: [subjectId], references: [id])
+  recording   Recording?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -738,6 +739,7 @@ model EnrollmentSession {
   // Relations
   enrollment       Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   creditTransaction CreditTransaction?
+  recording        Recording?
 
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -775,5 +777,78 @@ model Payment {
   @@index([parentId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============================================
+// M10: RECORDINGS (Zoom Cloud → AWS S3)
+// ============================================
+
+enum RecordingStatus {
+  PENDING
+  PROCESSING
+  AVAILABLE
+  FAILED
+}
+
+enum RecordingFileType {
+  VIDEO
+  AUDIO
+  CHAT
+  TRANSCRIPT
+}
+
+model Recording {
+  id                    String          @id @default(uuid())
+  enrollmentSessionId   String?         @unique
+  demoBookingId         String?         @unique
+  zoomMeetingId         BigInt
+  zoomMeetingUuid       String          @unique  // Idempotency: one recording per meeting instance
+  meetingTopic          String?
+  meetingDuration       Int?            // minutes
+  status                RecordingStatus @default(PENDING)
+  title                 String?         // e.g. "Mathematics — Algebra Basics"
+  description           String?         // What was covered in the session
+  thumbnailUrl          String?         // Placeholder for future thumbnail
+  webhookEventId        String?         @unique
+  readyForZoomDeletion  DateTime?       // Set to now()+2hrs when all files AVAILABLE
+  zoomDeletedAt         DateTime?       // When actually deleted from Zoom
+
+  enrollmentSession     EnrollmentSession? @relation(fields: [enrollmentSessionId], references: [id])
+  demoBooking           DemoBooking?       @relation(fields: [demoBookingId], references: [id])
+  files                 RecordingFile[]
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([zoomMeetingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RecordingFile {
+  id                  String            @id @default(uuid())
+  recordingId         String
+  zoomFileId          String            @unique  // Idempotency: one row per Zoom file
+  fileType            RecordingFileType
+  fileExtension       String            // "MP4", "M4A", "TXT", "VTT"
+  recordingType       String            // "shared_screen_with_speaker_view", "audio_only", etc.
+  fileSizeBytes       BigInt
+  durationSeconds     Int?
+  zoomDownloadUrl     String
+  s3Key               String?
+  s3Bucket            String?
+  status              RecordingStatus   @default(PENDING)
+  retryCount          Int               @default(0)
+  lastError           String?
+  processingStartedAt DateTime?         // Tracks when upload started (stale detection)
+  completedAt         DateTime?
+
+  recording           Recording         @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([recordingId])
+  @@index([status, retryCount])
 }
 

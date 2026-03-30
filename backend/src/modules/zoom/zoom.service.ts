@@ -86,7 +86,7 @@ export class ZoomService {
         settings: {
           join_before_host: true,
           waiting_room: false,
-          auto_recording: 'none',
+          auto_recording: 'cloud',
           mute_upon_entry: true,
         },
       }),
@@ -133,7 +133,7 @@ export class ZoomService {
         settings: {
           join_before_host: true,
           waiting_room: false,
-          auto_recording: 'none',
+          auto_recording: 'cloud',
           mute_upon_entry: true,
         },
       }),
@@ -151,6 +151,36 @@ export class ZoomService {
       joinUrl: data.join_url,
       password: data.password || '',
     };
+  }
+
+  // ==========================================
+  // Delete a meeting (cleanup on cancellation)
+  // ==========================================
+
+  // ==========================================
+  // Delete recording from Zoom cloud (free storage)
+  // ==========================================
+
+  async deleteRecording(meetingUuid: string): Promise<void> {
+    if (!this.isConfigured()) return;
+
+    try {
+      const token = await this.getAccessToken();
+      // Double-encode UUID per Zoom API docs (UUIDs starting with / or containing //)
+      const encodedUuid = encodeURIComponent(encodeURIComponent(meetingUuid));
+
+      const response = await fetch(`https://api.zoom.us/v2/meetings/${encodedUuid}/recordings`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!response.ok && response.status !== 404) {
+        const text = await response.text();
+        console.error(`Zoom delete recording failed (${response.status}): ${text}`);
+      }
+    } catch (err) {
+      console.error('Zoom delete recording error (non-blocking):', err);
+    }
   }
 
   // ==========================================

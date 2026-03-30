@@ -7,6 +7,7 @@ import app from './app';
 import { env } from './config/env';
 import prisma from './config/database';
 import { startEnrollmentCron } from './cron/enrollment-cron';
+import { startRecordingCron } from './cron/recording-cron';
 
 const start = async () => {
   try {
@@ -22,6 +23,7 @@ const start = async () => {
 
       // Start cron jobs
       startEnrollmentCron();
+      startRecordingCron();
     });
   } catch (error) {
     console.error('Failed to start server:', error);

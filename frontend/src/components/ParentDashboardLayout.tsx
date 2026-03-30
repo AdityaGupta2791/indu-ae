@@ -14,6 +14,7 @@ import {
   Menu,
   Bell,
   HelpCircle,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,6 +51,7 @@ const navItems = [
   { href: "/parent-dashboard/bookings", label: "My Bookings", icon: CalendarCheck },
   { href: "/parent-dashboard/credits", label: "Credits", icon: CreditCard },
   { href: "/parent-dashboard/enrolled-classes", label: "Enrolled Classes", icon: BookOpen },
+  { href: "/parent-dashboard/recordings", label: "Recordings", icon: Video },
   { href: "/parent-dashboard/assessments", label: "Assessments", icon: ClipboardList },
   { href: "/parent-dashboard/messages", label: "Messages", icon: MessageSquare },
 ];

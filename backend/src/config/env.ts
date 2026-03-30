@@ -26,6 +26,16 @@ const envSchema = z.object({
   ZOOM_ACCOUNT_ID: z.string().optional(),
   ZOOM_CLIENT_ID: z.string().optional(),
   ZOOM_CLIENT_SECRET: z.string().optional(),
+  ZOOM_WEBHOOK_SECRET_TOKEN: z.string().optional(),
+
+  // AWS S3 (Recordings)
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_S3_RECORDINGS_BUCKET: z.string().optional(),
+
+  // Recording config
+  RECORDING_MAX_RETRIES: z.string().default('3').transform(Number),
 });
 
 const parsed = envSchema.safeParse(process.env);

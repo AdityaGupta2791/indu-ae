@@ -113,11 +113,12 @@ const Credits = () => {
     const paymentStatus = searchParams.get("payment");
     if (paymentStatus === "success") {
       toast({
-        title: "Payment Successful",
-        description: "Credits have been added to your account.",
+        title: "Payment Processing",
+        description: "Your payment is being verified. Credits will be added shortly.",
       });
-      // Refresh balance after a short delay (webhook may take a moment)
-      setTimeout(() => fetchBalance(), 2000);
+      // Refresh balance after delays to catch webhook processing
+      setTimeout(() => { fetchBalance(); fetchTransactions(); }, 3000);
+      setTimeout(() => { fetchBalance(); fetchTransactions(); }, 8000);
       setSearchParams({}, { replace: true });
     } else if (paymentStatus === "cancelled") {
       toast({

@@ -44,6 +44,7 @@ const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const sessionStatusConfig: Record<SessionStatus, { label: string; color: string }> = {
   SCHEDULED: { label: "Scheduled", color: "bg-blue-100 text-blue-700" },
   CONFIRMED: { label: "Confirmed", color: "bg-green-100 text-green-700" },
+  COMPLETED: { label: "Completed", color: "bg-emerald-100 text-emerald-700" },
   CANCELLED_PARENT: { label: "Cancelled", color: "bg-gray-100 text-gray-500" },
   CANCELLED_LATE: { label: "Late Cancel", color: "bg-red-100 text-red-700" },
   SKIPPED: { label: "Skipped", color: "bg-orange-100 text-orange-700" },
@@ -557,6 +558,7 @@ const EnrollmentDetail = () => {
         })()}
 
       </div>
+
     </ParentDashboardLayout>
   );
 };

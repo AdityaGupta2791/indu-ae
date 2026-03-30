@@ -38,6 +38,7 @@ import TutorSettings from "@/pages/tutor-dashboard/TutorSettings";
 import TutorCourseMaterials from "@/pages/tutor-dashboard/TutorCourseMaterials";
 import TutorBookings from "@/pages/tutor-dashboard/TutorBookings";
 import TutorEnrollments from "@/pages/tutor-dashboard/TutorEnrollments";
+import TutorRecordingsPage from "@/pages/tutor-dashboard/TutorRecordingsPage";
 import TutorEnrollmentDetail from "@/pages/tutor-dashboard/TutorEnrollmentDetail";
 
 // Public Pages
@@ -77,6 +78,7 @@ import FindTutors from "@/pages/parent-dashboard/FindTutors";
 import ParentDemoRequests from "@/pages/parent-dashboard/DemoRequests";
 import Credits from "@/pages/parent-dashboard/Credits";
 import ParentEnrolledClasses from "@/pages/parent-dashboard/ParentEnrolledClasses";
+import ParentRecordings from "@/pages/parent-dashboard/ParentRecordings";
 import ParentAssessments from "@/pages/parent-dashboard/ParentAssessments";
 import ParentSettings from "@/pages/parent-dashboard/ParentSettings";
 import ParentMessages from "@/pages/parent-dashboard/ParentMessages";
@@ -200,6 +202,10 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="parent"><ParentEnrolledClasses /></ProtectedRoute>}
       />
       <Route
+        path="/parent-dashboard/recordings"
+        element={<ProtectedRoute requiredRole="parent"><ParentRecordings /></ProtectedRoute>}
+      />
+      <Route
         path="/parent-dashboard/enrollments/new"
         element={<ProtectedRoute requiredRole="parent"><NewEnrollment /></ProtectedRoute>}
       />
@@ -256,6 +262,10 @@ const AppRoutes = () => {
       <Route
         path="/tutor-dashboard/enrollments"
         element={<ProtectedRoute requiredRole="tutor"><TutorEnrollments /></ProtectedRoute>}
+      />
+      <Route
+        path="/tutor-dashboard/recordings"
+        element={<ProtectedRoute requiredRole="tutor"><TutorRecordingsPage /></ProtectedRoute>}
       />
       <Route
         path="/tutor-dashboard/enrollments/:id"
