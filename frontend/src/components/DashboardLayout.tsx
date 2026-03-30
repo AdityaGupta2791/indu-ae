@@ -65,7 +65,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <Link to="/" className="flex items-center mr-4">
             <div className="relative h-10 w-40">
               <img 
-                src="/indu_ae.png"
+                src="/indu.png"
                 alt="Indu AE Logo" 
                 className="h-full object-contain"
               />

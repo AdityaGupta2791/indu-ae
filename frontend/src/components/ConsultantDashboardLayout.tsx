@@ -12,7 +12,6 @@ import {
   HelpCircle,
   Bell,
   Calendar,
-  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -46,7 +45,6 @@ const navItems = [
   { href: "/consultant-dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/consultant-dashboard/demo-requests", label: "Demo Requests", icon: ClipboardList },
   { href: "/consultant-dashboard/demo-bookings", label: "Demo Bookings", icon: Calendar },
-  { href: "/consultant-dashboard/class-bookings", label: "Class Bookings", icon: BookOpen },
   { href: "/consultant-dashboard/allocations", label: "Allocations", icon: UserCheck },
   { href: "/consultant-dashboard/earnings", label: "Earnings", icon: BarChart },
   { href: "/consultant-dashboard/messages", label: "Messages", icon: MessageSquare },
@@ -121,7 +119,7 @@ const ConsultantDashboardLayout = ({ children }: ConsultantDashboardLayoutProps)
             <Link to="/" className="flex items-center mr-4">
               <div className="relative h-10 w-40">
                 <img
-                  src="/indu_ae.png"
+                  src="/indu.png"
                   alt="Indu AE Logo"
                   className="h-full object-contain"
                 />

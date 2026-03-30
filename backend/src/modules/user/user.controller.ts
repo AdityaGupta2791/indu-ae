@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from './user.service';
 import { sendSuccess } from '../../shared/utils/apiResponse';
+import prisma from '../../config/database';
+import { ApiError } from '../../shared/utils/apiError';
 
 const userService = new UserService();
 
@@ -130,7 +132,9 @@ export class UserController {
   // ==========================================
   async adminGetChildren(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await userService.getChildrenByParentId(req.params.parentId as string);
+      const parent = await prisma.parentProfile.findUnique({ where: { id: req.params.parentId as string }, select: { userId: true } });
+      if (!parent) throw ApiError.notFound('Parent profile not found');
+      const result = await userService.getChildren(parent.userId);
       sendSuccess(res, result);
     } catch (error) {
       next(error);
@@ -139,10 +143,9 @@ export class UserController {
 
   async adminCreateChild(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await userService.createChildByParentId(
-        req.params.parentId as string,
-        req.body
-      );
+      const parent = await prisma.parentProfile.findUnique({ where: { id: req.params.parentId as string }, select: { userId: true } });
+      if (!parent) throw ApiError.notFound('Parent profile not found');
+      const result = await userService.createChild(parent.userId, req.body);
       sendSuccess(res, result, 201);
     } catch (error) {
       next(error);
@@ -151,11 +154,9 @@ export class UserController {
 
   async adminUpdateChild(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await userService.updateChildByParentId(
-        req.params.parentId as string,
-        req.params.childId as string,
-        req.body
-      );
+      const parent = await prisma.parentProfile.findUnique({ where: { id: req.params.parentId as string }, select: { userId: true } });
+      if (!parent) throw ApiError.notFound('Parent profile not found');
+      const result = await userService.updateChild(parent.userId, req.params.childId as string, req.body);
       sendSuccess(res, result);
     } catch (error) {
       next(error);
@@ -164,10 +165,9 @@ export class UserController {
 
   async adminDeleteChild(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await userService.deleteChildByParentId(
-        req.params.parentId as string,
-        req.params.childId as string
-      );
+      const parent = await prisma.parentProfile.findUnique({ where: { id: req.params.parentId as string }, select: { userId: true } });
+      if (!parent) throw ApiError.notFound('Parent profile not found');
+      const result = await userService.deleteChild(parent.userId, req.params.childId as string);
       sendSuccess(res, result);
     } catch (error) {
       next(error);

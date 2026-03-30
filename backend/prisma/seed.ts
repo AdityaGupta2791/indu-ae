@@ -129,6 +129,9 @@ async function main() {
     create: {
       name: 'Tier 1 (Grade 1-6)',
       creditsPerClass: 2,
+      credits60Min: 2,
+      credits90Min: 3,
+      credits120Min: 4,
       minGrade: 1,
       maxGrade: 6,
     },
@@ -140,6 +143,9 @@ async function main() {
     create: {
       name: 'Tier 2 (Grade 7-12)',
       creditsPerClass: 3,
+      credits60Min: 3,
+      credits90Min: 4,
+      credits120Min: 5,
       minGrade: 7,
       maxGrade: 12,
     },

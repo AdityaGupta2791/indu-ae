@@ -20,6 +20,7 @@ export interface User {
   phone?: string;
   role: "student" | "parent" | "tutor" | "consultant" | "admin";
   avatar?: string;
+  timezone: string; // IANA timezone (e.g. "Asia/Dubai")
   // Parent-specific
   children?: Child[];
   creditBalance?: number;
@@ -62,6 +63,7 @@ function mapLoginToUser(loginData: LoginResponse): User {
     fullName,
     email: loginData.user.email,
     role,
+    timezone: loginData.user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${loginData.user.email}`,
   };
 }

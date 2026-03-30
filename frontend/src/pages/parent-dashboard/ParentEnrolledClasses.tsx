@@ -1,223 +1,198 @@
-
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import ParentDashboardLayout from "@/components/ParentDashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen,
   Calendar,
-  Clock,
-  Star,
-  MapPin,
-  User,
   CheckCircle2,
   PauseCircle,
-  AlertCircle,
-  MessageSquare,
+  XCircle,
+  Loader2,
+  Plus,
+  User,
+  CreditCard,
 } from "lucide-react";
-import { mockAllocations } from "@/data/mockPlatformData";
 import { useToast } from "@/hooks/use-toast";
-import type { AllocationStatus } from "@/types/platform";
+import { displayTimeRange } from "@/lib/utils";
+import {
+  parentEnrollmentService,
+  type Enrollment,
+  type EnrollmentStatus,
+} from "@/services/enrollment.service";
 
-const statusConfig: Record<AllocationStatus, { label: string; color: string }> = {
-  active: { label: "Active", color: "bg-green-100 text-green-700" },
-  "demo-scheduled": { label: "Demo Scheduled", color: "bg-blue-100 text-blue-700" },
-  "demo-completed": { label: "Demo Done", color: "bg-purple-100 text-purple-700" },
-  confirmed: { label: "Confirmed", color: "bg-green-100 text-green-700" },
-  "on-hold": { label: "On Hold", color: "bg-yellow-100 text-yellow-700" },
-  "reassign-needed": { label: "Reassign", color: "bg-orange-100 text-orange-700" },
-  completed: { label: "Completed", color: "bg-gray-100 text-gray-700" },
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const statusConfig: Record<EnrollmentStatus, { label: string; color: string; icon: React.ElementType }> = {
+  ACTIVE: { label: "Active", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
+  PAUSED: { label: "Paused", color: "bg-yellow-100 text-yellow-700", icon: PauseCircle },
+  CANCELLED: { label: "Cancelled", color: "bg-gray-100 text-gray-500", icon: XCircle },
+  COMPLETED: { label: "Completed", color: "bg-blue-100 text-blue-700", icon: CheckCircle2 },
 };
 
 const ParentEnrolledClasses = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("all");
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | null>(null);
 
-  const filteredAllocations = activeTab === "all"
-    ? mockAllocations
-    : activeTab === "active"
-    ? mockAllocations.filter((a) => ["active", "confirmed"].includes(a.status))
-    : activeTab === "upcoming"
-    ? mockAllocations.filter((a) => ["demo-scheduled", "demo-completed"].includes(a.status))
-    : mockAllocations.filter((a) => ["reassign-needed", "on-hold", "completed"].includes(a.status));
+  useEffect(() => {
+    parentEnrollmentService
+      .list({ limit: 50 })
+      .then((res) => setEnrollments(res.data))
+      .catch(() =>
+        toast({ title: "Error", description: "Failed to load enrollments.", variant: "destructive" })
+      )
+      .finally(() => setLoading(false));
+  }, []);
 
-  const activeCount = mockAllocations.filter((a) => ["active", "confirmed"].includes(a.status)).length;
-  const upcomingCount = mockAllocations.filter((a) => ["demo-scheduled", "demo-completed"].includes(a.status)).length;
+  const stats = useMemo(() => ({
+    total: enrollments.length,
+    active: enrollments.filter((e) => e.status === "ACTIVE").length,
+    paused: enrollments.filter((e) => e.status === "PAUSED").length,
+    cancelled: enrollments.filter((e) => e.status === "CANCELLED").length,
+  }), [enrollments]);
+
+  const filteredEnrollments = statusFilter
+    ? enrollments.filter((e) => e.status === statusFilter)
+    : enrollments;
+
+  const toggleFilter = (status: EnrollmentStatus) => {
+    setStatusFilter((prev) => (prev === status ? null : status));
+  };
 
   return (
     <ParentDashboardLayout>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-indigo-800">Enrolled Classes</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            View your children's active classes, schedules, and tutor information.
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-indigo-800">Enrolled Classes</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Manage your children's recurring class enrollments.
+            </p>
+          </div>
+          <Link to="/parent-dashboard/enrollments/new">
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+              <Plus className="h-4 w-4 mr-1" /> New Enrollment
+            </Button>
+          </Link>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <Card>
+        {/* Stats — clickable filters */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <Card
+            className={`cursor-pointer transition-all ${statusFilter === null ? "ring-2 ring-indigo-500" : "hover:shadow-md"}`}
+            onClick={() => setStatusFilter(null)}
+          >
             <CardContent className="p-4 text-center">
               <BookOpen className="h-5 w-5 text-indigo-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{mockAllocations.length}</p>
-              <p className="text-xs text-muted-foreground">Total Classes</p>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card
+            className={`cursor-pointer transition-all ${statusFilter === "ACTIVE" ? "ring-2 ring-green-500" : "hover:shadow-md"}`}
+            onClick={() => toggleFilter("ACTIVE")}
+          >
             <CardContent className="p-4 text-center">
               <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{activeCount}</p>
+              <p className="text-2xl font-bold">{stats.active}</p>
               <p className="text-xs text-muted-foreground">Active</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card
+            className={`cursor-pointer transition-all ${statusFilter === "PAUSED" ? "ring-2 ring-yellow-500" : "hover:shadow-md"}`}
+            onClick={() => toggleFilter("PAUSED")}
+          >
             <CardContent className="p-4 text-center">
-              <Calendar className="h-5 w-5 text-blue-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{upcomingCount}</p>
-              <p className="text-xs text-muted-foreground">Upcoming Demos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Star className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">
-                {(
-                  mockAllocations
-                    .filter((a) => a.parentRating)
-                    .reduce((sum, a) => sum + (a.parentRating || 0), 0) /
-                    (mockAllocations.filter((a) => a.parentRating).length || 1)
-                ).toFixed(1)}
-              </p>
-              <p className="text-xs text-muted-foreground">Avg Rating</p>
+              <PauseCircle className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
+              <p className="text-2xl font-bold">{stats.paused}</p>
+              <p className="text-xs text-muted-foreground">Paused</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">All ({mockAllocations.length})</TabsTrigger>
-            <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming ({upcomingCount})</TabsTrigger>
-            <TabsTrigger value="other">Other</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-4">
-            {filteredAllocations.length > 0 ? (
-              <div className="space-y-4">
-                {filteredAllocations.map((alloc) => {
-                  const status = statusConfig[alloc.status];
-                  return (
-                    <Card key={alloc.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                          {/* Tutor avatar */}
-                          <Avatar className="h-14 w-14 flex-shrink-0">
-                            <AvatarImage src={alloc.tutorAvatar} alt={alloc.tutorName} />
-                            <AvatarFallback className="bg-purple-100 text-purple-700">
-                              {alloc.tutorName.split(" ").map((n) => n[0]).join("")}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold">{alloc.subject}</h3>
-                              <Badge className={`text-xs ${status.color}`}>{status.label}</Badge>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-2 text-sm">
-                              <div className="flex items-center gap-1.5 text-muted-foreground">
-                                <User className="h-3.5 w-3.5" />
-                                <span>Child: <span className="font-medium text-foreground">{alloc.childName}</span> ({alloc.childGrade})</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-muted-foreground">
-                                <Star className="h-3.5 w-3.5" />
-                                <span>Tutor: <span className="font-medium text-foreground">{alloc.tutorName}</span></span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-muted-foreground">
-                                <Clock className="h-3.5 w-3.5" />
-                                <span>{alloc.schedule}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-muted-foreground">
-                                <MapPin className="h-3.5 w-3.5" />
-                                <span>{alloc.format}</span>
-                              </div>
-                            </div>
-
-                            {alloc.sessionsCompleted !== undefined && (
-                              <p className="text-xs text-muted-foreground mt-2">
-                                {alloc.sessionsCompleted} session{alloc.sessionsCompleted !== 1 ? "s" : ""} completed · Since {alloc.allocatedOn}
-                              </p>
-                            )}
-
-                            {alloc.demoDate && alloc.status === "demo-scheduled" && (
-                              <div className="flex items-center gap-1.5 text-sm text-blue-600 mt-2">
-                                <Calendar className="h-3.5 w-3.5" />
-                                Demo on {alloc.demoDate}
-                              </div>
-                            )}
-
-                            {alloc.parentRating && (
-                              <div className="flex items-center gap-1 mt-2">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`h-3.5 w-3.5 ${
-                                      i < alloc.parentRating!
-                                        ? "text-yellow-500 fill-yellow-500"
-                                        : "text-gray-300"
-                                    }`}
-                                  />
-                                ))}
-                                <span className="text-xs text-muted-foreground ml-1">Your rating</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex sm:flex-col gap-2 flex-shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs"
-                              onClick={() => toast({ title: "Message", description: "Messaging feature coming soon." })}
-                            >
-                              <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                              Message
-                            </Button>
-                            {alloc.status === "reassign-needed" && (
-                              <Button
-                                size="sm"
-                                className="text-xs bg-orange-600 hover:bg-orange-700"
-                                onClick={() => toast({ title: "Reassignment", description: "Consultant will assign a new tutor." })}
-                              >
-                                <AlertCircle className="h-3.5 w-3.5 mr-1" />
-                                Reassign
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="text-lg font-semibold">No classes in this category</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Classes will appear here once tutors are assigned and demos are scheduled.
-                </p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+        {/* Enrollment List */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredEnrollments.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            {filteredEnrollments.map((enrollment) => {
+              const sc = statusConfig[enrollment.status];
+              const StatusIcon = sc.icon;
+              return (
+                <Link key={enrollment.id} to={`/parent-dashboard/enrollments/${enrollment.id}`} className="block">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                        <h3 className="font-semibold text-sm">
+                          {enrollment.student.firstName} {enrollment.student.lastName}
+                        </h3>
+                        <Badge className={`text-[10px] ${sc.color}`} variant="secondary">
+                          <StatusIcon className="h-3 w-3 mr-0.5" />
+                          {sc.label}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          {enrollment.subject.name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          Tutor: {enrollment.tutor.firstName} {enrollment.tutor.lastName}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {(enrollment.schedule || [])
+                            .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+                            .map((s) => `${DAY_LABELS[s.dayOfWeek]} ${displayTimeRange(s.startTime, enrollment.duration, enrollment.parent?.user?.timezone || "Asia/Dubai")}`)
+                            .join(", ")}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <CreditCard className="h-3 w-3" />
+                          {enrollment.creditsPerSession} credits/session
+                        </span>
+                      </div>
+                      {enrollment.pauseReason && enrollment.status === "PAUSED" && (
+                        <p className="text-xs text-yellow-700 mt-2 bg-yellow-50 rounded p-2">
+                          Paused: {enrollment.pauseReason}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        ) : enrollments.length > 0 ? (
+          <div className="text-center py-12">
+            <p className="text-sm text-muted-foreground">
+              No {statusFilter?.toLowerCase()} enrollments found.
+            </p>
+            <Button variant="link" size="sm" onClick={() => setStatusFilter(null)}>
+              Show all
+            </Button>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-lg font-semibold">No enrollments yet</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Create an enrollment to start recurring classes for your child.
+            </p>
+            <Link to="/parent-dashboard/enrollments/new">
+              <Button size="sm" className="mt-3 bg-indigo-600 hover:bg-indigo-700">
+                <Plus className="h-4 w-4 mr-1" /> New Enrollment
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </ParentDashboardLayout>
   );

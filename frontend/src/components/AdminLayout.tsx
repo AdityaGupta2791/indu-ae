@@ -15,8 +15,8 @@ import {
   HelpCircle,
   FileText,
   Video,
-  CalendarCheck,
   ClipboardList,
+  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,7 +50,7 @@ const navItems = [
   { href: "/admin/classes", label: "Course Management", icon: BookOpen },
   { href: "/admin/demo-requests", label: "Demo Requests", icon: FileText },
   { href: "/admin/demo-bookings", label: "Demo Bookings", icon: Video },
-  { href: "/admin/class-bookings", label: "Class Bookings", icon: CalendarCheck },
+  { href: "/admin/enrollments", label: "Enrollments", icon: CalendarCheck },
   { href: "/admin/payments", label: "Credits & Wallets", icon: CreditCard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare },
@@ -122,7 +122,7 @@ const AdminLayout = () => {
             <Link to="/" className="flex items-center mr-4">
               <div className="relative h-10 w-40">
                 <img
-                  src="/indu_ae.png"
+                  src="/indu.png"
                   alt="Indu AE Logo"
                   className="h-full object-contain"
                 />

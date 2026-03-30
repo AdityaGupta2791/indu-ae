@@ -31,6 +31,7 @@ import {
   Wallet,
   Trash2,
   ArrowUpDown,
+  CreditCard,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -38,6 +39,10 @@ import {
   type CreditPackage,
   type AdminWalletEntry,
 } from "@/services/wallet.service";
+import {
+  adminPaymentService,
+  type AdminPayment,
+} from "@/services/payment.service";
 
 interface PaginationMeta {
   page: number;
@@ -46,7 +51,7 @@ interface PaginationMeta {
   totalPages: number;
 }
 
-type Tab = "packages" | "wallets";
+type Tab = "packages" | "wallets" | "payments";
 
 const PaymentManagement = () => {
   const { toast } = useToast();
@@ -74,6 +79,13 @@ const PaymentManagement = () => {
   const [walletsLoading, setWalletsLoading] = useState(false);
   const [walletSearch, setWalletSearch] = useState("");
   const [walletPage, setWalletPage] = useState(1);
+
+  // ------- Payments -------
+  const [payments, setPayments] = useState<AdminPayment[]>([]);
+  const [paymentMeta, setPaymentMeta] = useState<PaginationMeta | null>(null);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const [paymentFilter, setPaymentFilter] = useState("");
 
   // Adjust credits dialog
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -123,6 +135,32 @@ const PaymentManagement = () => {
   useEffect(() => {
     setWalletPage(1);
   }, [walletSearch]);
+
+  // ------- Fetch Payments -------
+  const fetchPayments = useCallback(async () => {
+    setPaymentsLoading(true);
+    try {
+      const result = await adminPaymentService.listPayments({
+        page: paymentPage,
+        limit: 20,
+        status: paymentFilter || undefined,
+      });
+      setPayments(result.data);
+      setPaymentMeta(result.meta);
+    } catch {
+      toast({ title: "Error", description: "Failed to load payments.", variant: "destructive" });
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, [paymentPage, paymentFilter, toast]);
+
+  useEffect(() => {
+    if (activeTab === "payments") fetchPayments();
+  }, [activeTab, fetchPayments]);
+
+  useEffect(() => {
+    setPaymentPage(1);
+  }, [paymentFilter]);
 
   // ------- Package CRUD -------
   const openCreatePackage = () => {
@@ -277,6 +315,14 @@ const PaymentManagement = () => {
         >
           <Wallet className="h-4 w-4 mr-2" />
           Parent Wallets
+        </Button>
+        <Button
+          variant={activeTab === "payments" ? "default" : "outline"}
+          onClick={() => setActiveTab("payments")}
+          className={activeTab === "payments" ? "bg-gray-800 hover:bg-gray-900" : ""}
+        >
+          <CreditCard className="h-4 w-4 mr-2" />
+          Payments
         </Button>
       </div>
 
@@ -446,6 +492,113 @@ const PaymentManagement = () => {
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="sm" disabled={walletPage >= walletMeta.totalPages} onClick={() => setWalletPage((p) => p + 1)}>
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ==================== PAYMENTS TAB ==================== */}
+      {activeTab === "payments" && (
+        <Card>
+          <div className="p-6 pb-0 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Payment History {paymentMeta ? `(${paymentMeta.total})` : ""}
+            </h2>
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="px-3 py-1.5 border border-input rounded-md bg-background text-sm"
+            >
+              <option value="">All Statuses</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING">Pending</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </div>
+          <CardContent className="pt-4">
+            {paymentsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                No payments found.
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Parent</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Package</TableHead>
+                        <TableHead>Credits</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell className="font-medium text-gray-800">
+                            {payment.parentName}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {payment.parentEmail}
+                          </TableCell>
+                          <TableCell>{payment.packageName}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-indigo-100 text-indigo-800">
+                              {payment.credits}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            AED {(payment.amountInFils / 100).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                payment.status === "COMPLETED"
+                                  ? "bg-green-100 text-green-800"
+                                  : payment.status === "PENDING"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : payment.status === "EXPIRED"
+                                  ? "bg-gray-100 text-gray-800"
+                                  : "bg-red-100 text-red-800"
+                              }
+                            >
+                              {payment.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(payment.createdAt).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Pagination */}
+                {paymentMeta && paymentMeta.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Page {paymentMeta.page} of {paymentMeta.totalPages} ({paymentMeta.total} total)
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" disabled={paymentPage <= 1} onClick={() => setPaymentPage((p) => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" disabled={paymentPage >= paymentMeta.totalPages} onClick={() => setPaymentPage((p) => p + 1)}>
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>

@@ -119,7 +119,7 @@ const TutorAvailability = () => {
       setNewSlotEnd("11:00");
       toast({ title: "Slot Added", description: `${created.dayName} ${formatTime(created.startTime)} - ${formatTime(created.endTime)}` });
     } catch (err: any) {
-      const message = err?.response?.data?.message || "Failed to add slot. It may overlap with an existing one.";
+      const message = err?.response?.data?.error?.message || "Failed to add slot.";
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setAddingSlot(false);
@@ -155,7 +155,7 @@ const TutorAvailability = () => {
       setNewBlockReason("");
       toast({ title: "Date Blocked", description: `${created.date} has been blocked.` });
     } catch (err: any) {
-      const message = err?.response?.data?.message || "Failed to block date.";
+      const message = err?.response?.data?.error?.message || "Failed to block date.";
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setAddingBlock(false);
@@ -194,6 +194,7 @@ const TutorAvailability = () => {
           <h1 className="text-2xl font-bold text-teal-800">Availability</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage your weekly schedule and block specific dates when you are unavailable.
+            All times are shown in your local timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone}).
           </p>
         </div>
 

@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Loader2, Video, ChevronLeft, ChevronRight } from "lucide-react";
+import { displayTime } from "@/lib/utils";
 import { adminDemoBookingService, type DemoBooking } from "@/services/demoBooking.service";
 
 const statusColors: Record<string, string> = {
@@ -26,12 +27,6 @@ const statusColors: Record<string, string> = {
   COMPLETED: "bg-emerald-100 text-emerald-700",
   CANCELLED: "bg-gray-100 text-gray-500",
   NO_SHOW: "bg-red-100 text-red-700",
-};
-
-const to12hr = (time: string) => {
-  const [h, m] = time.split(":").map(Number);
-  const suffix = h >= 12 ? "PM" : "AM";
-  return `${((h % 12) || 12)}:${String(m).padStart(2, "0")} ${suffix}`;
 };
 
 const AdminDemoBookings = () => {
@@ -136,7 +131,7 @@ const AdminDemoBookings = () => {
                       <TableCell>{b.consultant ? `${b.consultant.firstName} ${b.consultant.lastName}` : "—"}</TableCell>
                       <TableCell>{new Date(b.scheduledDate).toLocaleDateString()}</TableCell>
                       <TableCell className="text-sm">
-                        {to12hr(b.scheduledStart)} – {to12hr(b.scheduledEnd)}
+                        {displayTime(b.scheduledStart, b.tutor?.user?.timezone || "Asia/Kolkata")} – {displayTime(b.scheduledEnd, b.tutor?.user?.timezone || "Asia/Kolkata")}
                       </TableCell>
                       <TableCell>
                         <Badge className={statusColors[b.status] || "bg-gray-100 text-gray-600"}>

@@ -14,8 +14,9 @@ import demoRequestRoutes from './modules/demo-request/demo-request.routes';
 import courseRoutes from './modules/course/course.routes';
 import walletRoutes from './modules/wallet/wallet.routes';
 import demoBookingRoutes from './modules/demo-booking/demo-booking.routes';
-import classBookingRoutes from './modules/class-booking/class-booking.routes';
 import applicationRoutes from './modules/application/application.routes';
+import enrollmentRoutes from './modules/enrollment/enrollment.routes';
+import paymentRoutes from './modules/payment/payment.routes';
 
 const app = express();
 
@@ -25,6 +26,10 @@ app.use(cors({
   origin: env.FRONTEND_URL,
   credentials: true,  // Allow cookies (refresh token)
 }));
+
+// Stripe webhook needs raw body for signature verification — must come BEFORE express.json()
+app.use(`/api/${env.API_VERSION}/payments/webhook`, express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -43,8 +48,9 @@ app.use(`${apiPrefix}`, tutorRoutes);
 app.use(`${apiPrefix}`, demoRequestRoutes);
 app.use(`${apiPrefix}`, walletRoutes);
 app.use(`${apiPrefix}`, demoBookingRoutes);
-app.use(`${apiPrefix}`, classBookingRoutes);
 app.use(`${apiPrefix}`, applicationRoutes);
+app.use(`${apiPrefix}`, enrollmentRoutes);
+app.use(`${apiPrefix}`, paymentRoutes);
 
 // 404 handler
 app.use((_req, res) => {

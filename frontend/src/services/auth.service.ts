@@ -1,4 +1,5 @@
 import api, { setAccessToken } from './api';
+import { getBrowserTimezone } from '@/lib/utils';
 
 export interface LoginResponse {
   accessToken: string;
@@ -9,6 +10,7 @@ export interface LoginResponse {
     firstName: string;
     lastName: string;
     permissions: string[];
+    timezone: string;
   };
 }
 
@@ -18,13 +20,13 @@ export interface SignupResponse {
 
 export const authService = {
   async login(email: string, password: string): Promise<LoginResponse> {
-    const { data } = await api.post('/auth/login', { email, password });
+    const { data } = await api.post('/auth/login', { email, password, timezone: getBrowserTimezone() });
     setAccessToken(data.data.accessToken);
     return data.data;
   },
 
   async signup(email: string, password: string, firstName: string, lastName: string): Promise<SignupResponse> {
-    const { data } = await api.post('/auth/signup', { email, password, firstName, lastName });
+    const { data } = await api.post('/auth/signup', { email, password, firstName, lastName, timezone: getBrowserTimezone() });
     return data.data;
   },
 

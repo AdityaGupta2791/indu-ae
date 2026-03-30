@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import ParentDashboardLayout from "@/components/ParentDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
   type CreditTransaction,
   type CreditPackage,
 } from "@/services/wallet.service";
+import { paymentService } from "@/services/payment.service";
 
 interface PaginationMeta {
   page: number;
@@ -38,6 +40,8 @@ interface PaginationMeta {
 
 const Credits = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
   // Balance
   const [balance, setBalance] = useState<WalletBalance | null>(null);
@@ -104,6 +108,27 @@ const Credits = () => {
     fetchTransactions();
   }, [fetchTransactions]);
 
+  // Handle Stripe redirect query params
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      toast({
+        title: "Payment Successful",
+        description: "Credits have been added to your account.",
+      });
+      // Refresh balance after a short delay (webhook may take a moment)
+      setTimeout(() => fetchBalance(), 2000);
+      setSearchParams({}, { replace: true });
+    } else if (paymentStatus === "cancelled") {
+      toast({
+        title: "Payment Cancelled",
+        description: "No credits were added.",
+        variant: "destructive",
+      });
+      setSearchParams({}, { replace: true });
+    }
+  }, []); // Run once on mount
+
   useEffect(() => {
     setTxPage(1);
   }, [txFilter]);
@@ -149,12 +174,22 @@ const Credits = () => {
     }
   };
 
-  const handlePurchase = (pkg: CreditPackage) => {
-    toast({
-      title: "Purchase Initiated",
-      description: `${pkg.credits} credits (${pkg.name}). Payment gateway integration coming soon.`,
-    });
-    setIsPurchaseOpen(false);
+  const handlePurchase = async (pkg: CreditPackage) => {
+    setPurchaseLoading(true);
+    try {
+      setIsPurchaseOpen(false);
+      const { checkoutUrl } = await paymentService.createCheckout(pkg.id);
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+      setPurchaseLoading(false);
+    }
   };
 
   return (
@@ -355,7 +390,8 @@ const Credits = () => {
                     <button
                       key={pack.id}
                       onClick={() => handlePurchase(pack)}
-                      className={`relative text-left p-4 rounded-lg border-2 transition-all hover:border-indigo-400 hover:shadow-md ${
+                      disabled={purchaseLoading}
+                      className={`relative text-left p-4 rounded-lg border-2 transition-all hover:border-indigo-400 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
                         index === 1 ? "border-indigo-500 bg-indigo-50" : "border-gray-200"
                       }`}
                     >

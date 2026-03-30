@@ -25,6 +25,9 @@ export interface GradeTier {
   id: string;
   name: string;
   creditsPerClass: number;
+  credits60Min: number;
+  credits90Min: number;
+  credits120Min: number;
   minGrade: number;
   maxGrade: number;
 }
@@ -124,7 +127,7 @@ export const adminCourseService = {
     return data.data;
   },
 
-  async updateGradeTier(id: string, payload: { creditsPerClass: number }): Promise<GradeTier> {
+  async updateGradeTier(id: string, payload: { creditsPerClass?: number; credits60Min?: number; credits90Min?: number; credits120Min?: number }): Promise<GradeTier> {
     const { data } = await api.patch(`/admin/grade-tiers/${id}`, payload);
     return data.data;
   },

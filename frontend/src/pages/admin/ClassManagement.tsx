@@ -108,7 +108,7 @@ const ClassManagement = () => {
   // Grade tiers dialog
   const [tiersOpen, setTiersOpen] = useState(false);
   const [tierEditId, setTierEditId] = useState<string | null>(null);
-  const [tierCredits, setTierCredits] = useState("");
+  const [tierCreditsForm, setTierCreditsForm] = useState({ credits60Min: "", credits90Min: "", credits120Min: "" });
   const [tierSaving, setTierSaving] = useState(false);
 
   // Status toggle
@@ -315,14 +315,21 @@ const ClassManagement = () => {
   };
 
   const handleSaveTier = async (tierId: string) => {
-    const credits = parseInt(tierCredits);
-    if (isNaN(credits) || credits < 1) {
-      toast({ title: "Invalid", description: "Credits must be a positive integer.", variant: "destructive" });
+    const c60 = parseInt(tierCreditsForm.credits60Min);
+    const c90 = parseInt(tierCreditsForm.credits90Min);
+    const c120 = parseInt(tierCreditsForm.credits120Min);
+    if ([c60, c90, c120].some((v) => isNaN(v) || v < 1)) {
+      toast({ title: "Invalid", description: "All credit values must be positive integers.", variant: "destructive" });
       return;
     }
     setTierSaving(true);
     try {
-      await adminCourseService.updateGradeTier(tierId, { creditsPerClass: credits });
+      await adminCourseService.updateGradeTier(tierId, {
+        credits60Min: c60,
+        credits90Min: c90,
+        credits120Min: c120,
+        creditsPerClass: c60, // keep legacy field in sync with 60-min rate
+      });
       toast({ title: "Grade tier updated" });
       const tiers = await adminCourseService.listGradeTiers();
       setGradeTiers(tiers);
@@ -674,46 +681,80 @@ const ClassManagement = () => {
             <DialogTitle>Grade Tier Pricing</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Set the number of credits required per class for each grade tier.
+            Set credits per session for each grade tier and duration.
           </p>
           <div className="space-y-3 py-2">
             {gradeTiers.map((tier) => (
-              <div key={tier.id} className="flex items-center justify-between rounded-md border px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium">{tier.name}</p>
-                  <p className="text-xs text-muted-foreground">Grades {tier.minGrade}–{tier.maxGrade}</p>
-                </div>
-                {tierEditId === tier.id ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={tierCredits}
-                      onChange={(e) => setTierCredits(e.target.value)}
-                      className="w-20 h-8 text-sm"
-                    />
-                    <Button size="sm" onClick={() => handleSaveTier(tier.id)} disabled={tierSaving}>
-                      {tierSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setTierEditId(null)}>
-                      <X className="h-3 w-3" />
-                    </Button>
+              <div key={tier.id} className="rounded-md border px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-medium">{tier.name}</p>
+                    <p className="text-xs text-muted-foreground">Grades {tier.minGrade}–{tier.maxGrade}</p>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-indigo-100 text-indigo-800">
-                      {tier.creditsPerClass} credits/class
-                    </Badge>
+                  {tierEditId === tier.id ? (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={() => handleSaveTier(tier.id)} disabled={tierSaving}>
+                        {tierSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setTierEditId(null)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
                         setTierEditId(tier.id);
-                        setTierCredits(String(tier.creditsPerClass));
+                        setTierCreditsForm({
+                          credits60Min: String(tier.credits60Min || tier.creditsPerClass),
+                          credits90Min: String(tier.credits90Min || tier.creditsPerClass),
+                          credits120Min: String(tier.credits120Min || tier.creditsPerClass),
+                        });
                       }}
                     >
                       <Pencil className="h-3 w-3" />
                     </Button>
+                  )}
+                </div>
+                {tierEditId === tier.id ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">60 min</p>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={tierCreditsForm.credits60Min}
+                        onChange={(e) => setTierCreditsForm({ ...tierCreditsForm, credits60Min: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">90 min</p>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={tierCreditsForm.credits90Min}
+                        onChange={(e) => setTierCreditsForm({ ...tierCreditsForm, credits90Min: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">120 min</p>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={tierCreditsForm.credits120Min}
+                        onChange={(e) => setTierCreditsForm({ ...tierCreditsForm, credits120Min: e.target.value })}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Badge className="bg-indigo-100 text-indigo-800 text-xs">60m: {tier.credits60Min || tier.creditsPerClass}</Badge>
+                    <Badge className="bg-indigo-100 text-indigo-800 text-xs">90m: {tier.credits90Min || tier.creditsPerClass}</Badge>
+                    <Badge className="bg-indigo-100 text-indigo-800 text-xs">120m: {tier.credits120Min || tier.creditsPerClass}</Badge>
                   </div>
                 )}
               </div>

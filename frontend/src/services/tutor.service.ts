@@ -140,7 +140,11 @@ export const tutorSearchService = {
     return data.data;
   },
 
-  async getAvailability(tutorId: string, date: string): Promise<Array<{ date: string; startTime: string; endTime: string; dayName: string }>> {
+  async getAvailability(tutorId: string, date: string): Promise<{
+    slots: Array<{ date: string; startTime: string; endTime: string; dayName: string }>;
+    blockedDates: Array<{ date: string; reason: string | null }>;
+    tutorTimezone: string;
+  }> {
     const { data } = await api.get(`/tutors/${tutorId}/availability?startDate=${date}&endDate=${date}`);
     return data.data;
   },

@@ -19,7 +19,7 @@ export interface DemoBooking {
     childLastName: string;
   } | null;
   student: { id: string; firstName: string; lastName: string } | null;
-  tutor: { id: string; firstName: string; lastName: string };
+  tutor: { id: string; firstName: string; lastName: string; user?: { timezone: string } };
   consultant: { id: string; firstName: string; lastName: string };
   subject: { id: string; name: string };
   createdAt: string;

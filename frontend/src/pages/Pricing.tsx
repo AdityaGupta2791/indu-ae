@@ -34,7 +34,6 @@ const cardStyles = [
 
 const creditFactors = [
   "Grade level of the student",
-  "Subject complexity (e.g. Maths vs. Advanced Physics)",
   "Class type — One-to-One or Group",
   "Session duration",
 ];

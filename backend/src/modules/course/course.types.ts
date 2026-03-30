@@ -29,6 +29,9 @@ export interface CreateCourseMaterialDTO {
 export interface UpdateGradeTierDTO {
   name?: string;
   creditsPerClass?: number;
+  credits60Min?: number;
+  credits90Min?: number;
+  credits120Min?: number;
 }
 
 export interface AssignTutorToCourseDTO {

@@ -46,6 +46,7 @@ import {
 import { consultantDemoService, type DemoRequest } from "@/services/demoRequest.service";
 import { tutorSearchService } from "@/services/tutor.service";
 import { referenceService } from "@/services/user.service";
+import { displayTime } from "@/lib/utils";
 import type { Subject } from "@/services/user.service";
 
 const statusColors: Record<string, string> = {
@@ -83,6 +84,9 @@ const DemoBookings = () => {
   const [loadingTutors, setLoadingTutors] = useState(false);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [availableSlots, setAvailableSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [selectedTutorTz, setSelectedTutorTz] = useState("Asia/Kolkata");
+  const [isDateBlocked, setIsDateBlocked] = useState(false);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const emptyForm: CreateDemoBookingPayload = {
@@ -134,12 +138,18 @@ const DemoBookings = () => {
 
   // Fetch availability slots when tutor + date are both selected
   useEffect(() => {
-    if (!form.tutorId || !form.scheduledDate) { setAvailableSlots([]); return; }
+    if (!form.tutorId || !form.scheduledDate) { setAvailableSlots([]); setIsDateBlocked(false); setBlockedReason(null); return; }
     setLoadingSlots(true);
     tutorSearchService
       .getAvailability(form.tutorId, form.scheduledDate)
-      .then((slots) => setAvailableSlots(slots))
-      .catch(() => setAvailableSlots([]))
+      .then((result) => {
+        setAvailableSlots(result.slots);
+        setSelectedTutorTz(result.tutorTimezone || "Asia/Kolkata");
+        const blocked = result.blockedDates.find((b: { date: string; reason: string | null }) => b.date === form.scheduledDate);
+        setIsDateBlocked(!!blocked);
+        setBlockedReason(blocked?.reason || null);
+      })
+      .catch(() => { setAvailableSlots([]); setIsDateBlocked(false); setBlockedReason(null); })
       .finally(() => setLoadingSlots(false));
   }, [form.tutorId, form.scheduledDate]);
 
@@ -228,7 +238,7 @@ const DemoBookings = () => {
     const lines = [
       `Demo Class — ${booking.subject.name}`,
       `Date: ${new Date(booking.scheduledDate).toLocaleDateString()}`,
-      `Time: ${booking.scheduledStart} – ${booking.scheduledEnd}`,
+      `Time: ${displayTime(booking.scheduledStart, booking.tutor?.user?.timezone || "Asia/Kolkata")} – ${displayTime(booking.scheduledEnd, booking.tutor?.user?.timezone || "Asia/Kolkata")}`,
       booking.meetingLink ? `Join: ${booking.meetingLink}` : null,
       booking.meetingPassword ? `Password: ${booking.meetingPassword}` : null,
     ].filter(Boolean).join("\n");
@@ -374,11 +384,15 @@ const DemoBookings = () => {
                                   : "border-gray-300 hover:border-teal-500 hover:text-teal-700"
                               }`}
                             >
-                              {slot.startTime} – {slot.endTime}
+                              {displayTime(slot.startTime, selectedTutorTz)} – {displayTime(slot.endTime, selectedTutorTz)}
                             </button>
                           ))}
                         </div>
                       </div>
+                    ) : isDateBlocked ? (
+                      <p className="flex items-center gap-1.5 text-xs text-red-600">
+                        <XCircle className="h-3.5 w-3.5" /> Tutor is unavailable on this date{blockedReason ? ` (${blockedReason})` : ""} — consider picking another date
+                      </p>
                     ) : (
                       <p className="flex items-center gap-1.5 text-xs text-amber-600">
                         <AlertTriangle className="h-3.5 w-3.5" /> No availability set for this date — enter time manually
@@ -521,7 +535,7 @@ const DemoBookings = () => {
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {booking.scheduledStart} - {booking.scheduledEnd}
+                            {displayTime(booking.scheduledStart, booking.tutor?.user?.timezone || "Asia/Kolkata")} - {displayTime(booking.scheduledEnd, booking.tutor?.user?.timezone || "Asia/Kolkata")}
                           </span>
                         </div>
                       </div>

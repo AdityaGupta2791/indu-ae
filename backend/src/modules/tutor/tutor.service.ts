@@ -526,6 +526,21 @@ export class TutorService {
   async createTemplate(userId: string, data: CreateAvailabilityTemplateDTO) {
     const profile = await this.getProfileByUserId(userId);
 
+    // Check if any blocked dates fall on this day-of-week
+    const blockedDates = await prisma.blockedDate.findMany({
+      where: { tutorId: profile.id },
+    });
+    const conflictingBlocked = blockedDates.find((bd) => {
+      return bd.date.getUTCDay() === data.dayOfWeek;
+    });
+    if (conflictingBlocked) {
+      const blockedDateStr = conflictingBlocked.date.toISOString().split('T')[0];
+      throw ApiError.conflict(
+        'BLOCKED_DATE_CONFLICT',
+        `You have blocked ${blockedDateStr} (${DAY_NAMES[data.dayOfWeek]}). Remove the blocked date first before adding a slot for this day.`
+      );
+    }
+
     // Check for time overlap on the same day
     const existingTemplates = await prisma.availabilityTemplate.findMany({
       where: { tutorId: profile.id, dayOfWeek: data.dayOfWeek },
@@ -595,6 +610,18 @@ export class TutorService {
   async createBlockedDate(userId: string, data: CreateBlockedDateDTO) {
     const profile = await this.getProfileByUserId(userId);
 
+    const dateObj = new Date(data.date + 'T00:00:00');
+
+    // Must block at least 24 hours before the date
+    const now = new Date();
+    const diffMs = dateObj.getTime() - now.getTime();
+    if (diffMs < 24 * 60 * 60 * 1000) {
+      throw ApiError.badRequest(
+        'TOO_LATE',
+        'You must block a date at least 24 hours in advance.'
+      );
+    }
+
     // Check for duplicate
     const existing = await prisma.blockedDate.findUnique({
       where: { tutorId_date: { tutorId: profile.id, date: new Date(data.date) } },
@@ -642,6 +669,11 @@ export class TutorService {
     if (!profile.isActive) {
       throw ApiError.notFound('Tutor not found');
     }
+
+    const tutorUser = await prisma.user.findUnique({
+      where: { id: profile.userId },
+      select: { timezone: true },
+    });
 
     // Cap at 30 days
     const start = new Date(startDate);
@@ -701,6 +733,12 @@ export class TutorService {
       current.setDate(current.getDate() + 1);
     }
 
-    return slots;
+    // Build blocked info for the queried range
+    const blockedInfo = blockedDates.map((d) => ({
+      date: d.date.toISOString().split('T')[0],
+      reason: d.reason,
+    }));
+
+    return { slots, blockedDates: blockedInfo, tutorTimezone: tutorUser?.timezone || 'Asia/Kolkata' };
   }
 }

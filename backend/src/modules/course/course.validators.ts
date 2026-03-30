@@ -49,6 +49,9 @@ export const createCourseMaterialSchema = z.object({
 export const updateGradeTierSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   creditsPerClass: z.number().int().min(1).optional(),
+  credits60Min: z.number().int().min(1).optional(),
+  credits90Min: z.number().int().min(1).optional(),
+  credits120Min: z.number().int().min(1).optional(),
 });
 
 export const assignTutorToCourseSchema = z.object({

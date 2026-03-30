@@ -6,11 +6,13 @@ export interface SignupDTO {
   firstName: string;
   lastName: string;
   phone?: string;
+  timezone?: string;
 }
 
 export interface LoginDTO {
   email: string;
   password: string;
+  timezone?: string;
 }
 
 export interface TokenPayload {

@@ -15,7 +15,7 @@ const Footer = () => {
             <Link to="/" className="inline-block mb-6">
               <div className="h-12 w-48 relative">
                 <img
-                  src="/indu_ae.png"
+                  src="/indu.png"
                   alt="Indu AE Logo"
                   className="h-full object-contain brightness-0 invert"
                 />

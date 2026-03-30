@@ -147,8 +147,8 @@ const SystemSettings = () => {
                     <Switch id="new-user" defaultChecked />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="class-booking">Class Bookings</Label>
-                    <Switch id="class-booking" defaultChecked />
+                    <Label htmlFor="enrollment">Enrollments</Label>
+                    <Switch id="enrollment" defaultChecked />
                   </div>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="payment-success">Payment Success</Label>

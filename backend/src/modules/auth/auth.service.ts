@@ -37,6 +37,7 @@ export class AuthService {
           passwordHash,
           role: Role.PARENT,
           isEmailVerified: false,
+          ...(data.timezone ? { timezone: data.timezone } : {}),
           parentProfile: {
             create: {
               firstName: data.firstName,
@@ -139,10 +140,13 @@ export class AuthService {
       },
     });
 
-    // Update last login
+    // Update last login + timezone
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: {
+        lastLoginAt: new Date(),
+        ...(data.timezone ? { timezone: data.timezone } : {}),
+      },
     });
 
     const profile =
@@ -159,6 +163,7 @@ export class AuthService {
         firstName,
         lastName,
         permissions,
+        timezone: user.timezone,
       },
       refreshToken: tokens.refreshToken,
     };
@@ -227,6 +232,7 @@ export class AuthService {
         firstName: profile?.firstName || '',
         lastName: profile?.lastName || '',
         permissions,
+        timezone: user.timezone,
       },
     };
   }

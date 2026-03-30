@@ -229,6 +229,37 @@ export class WalletService {
     return { data: formatted, meta: buildPaginationMeta(page, limit, total) };
   }
 
+  // ==========================================
+  // PAYMENT: ADD CREDITS FROM STRIPE PURCHASE
+  // ==========================================
+
+  async addCreditsFromPayment(parentId: string, credits: number, description: string, paymentId: string) {
+    // Idempotency: check if transaction already exists for this payment
+    const existing = await prisma.creditTransaction.findUnique({ where: { paymentId } });
+    if (existing) return existing;
+
+    const tx = await prisma.creditTransaction.create({
+      data: {
+        parentId,
+        type: 'PURCHASE',
+        amount: credits,
+        description,
+        paymentId,
+      },
+    });
+
+    // Auto-resume paused enrollments when credits are added
+    try {
+      const { EnrollmentService } = await import('../enrollment/enrollment.service');
+      const enrollmentService = new EnrollmentService();
+      await enrollmentService.checkAndResumePausedEnrollments(parentId);
+    } catch (err) {
+      console.error('Auto-resume check failed (non-blocking):', err);
+    }
+
+    return tx;
+  }
+
   async adjustCredits(parentProfileId: string, data: AdjustCreditsDTO) {
     const parent = await prisma.parentProfile.findUnique({ where: { id: parentProfileId } });
     if (!parent) throw ApiError.notFound('Parent not found');
@@ -254,6 +285,17 @@ export class WalletService {
     });
 
     const newBalance = await this.computeBalance(parentProfileId);
+
+    // Auto-resume paused enrollments when credits are added
+    if (data.amount > 0) {
+      try {
+        const { EnrollmentService } = await import('../enrollment/enrollment.service');
+        const enrollmentService = new EnrollmentService();
+        await enrollmentService.checkAndResumePausedEnrollments(parentProfileId);
+      } catch (err) {
+        console.error('Auto-resume check failed (non-blocking):', err);
+      }
+    }
 
     return {
       newBalance,

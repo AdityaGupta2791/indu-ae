@@ -16,7 +16,7 @@ const VALID_TRANSITIONS: Record<DemoBookingStatus, DemoBookingStatus[]> = {
 const demoBookingInclude = {
   demoRequest: { select: { id: true, parentName: true, contactEmail: true, contactPhone: true, childFirstName: true, childLastName: true } },
   student: { select: { id: true, firstName: true, lastName: true } },
-  tutor: { select: { id: true, firstName: true, lastName: true } },
+  tutor: { select: { id: true, firstName: true, lastName: true, user: { select: { timezone: true } } } },
   consultant: { select: { id: true, firstName: true, lastName: true } },
   subject: { select: { id: true, name: true } },
 };
@@ -36,7 +36,7 @@ function formatDemoBooking(db: Record<string, unknown>) {
     updatedAt: Date;
     demoRequest: { id: string; parentName: string; contactEmail: string; contactPhone: string; childFirstName: string; childLastName: string } | null;
     student: { id: string; firstName: string; lastName: string } | null;
-    tutor: { id: string; firstName: string; lastName: string };
+    tutor: { id: string; firstName: string; lastName: string; user: { timezone: string } };
     consultant: { id: string; firstName: string; lastName: string };
     subject: { id: string; name: string };
   };
@@ -123,6 +123,38 @@ export class DemoBookingService {
 
       return newBooking;
     });
+
+    // Auto-generate Zoom meeting link if none provided (non-blocking)
+    if (!data.meetingLink) {
+      try {
+        const { ZoomService } = await import('../zoom/zoom.service');
+        const zoom = new ZoomService();
+        // Compute duration in minutes from start/end time
+        const [sh, sm] = data.scheduledStart.split(':').map(Number);
+        const [eh, em] = data.scheduledEnd.split(':').map(Number);
+        const durationMin = (eh * 60 + em) - (sh * 60 + sm);
+        const startISO = `${data.scheduledDate}T${data.scheduledStart}:00`;
+
+        const meeting = await zoom.createSingleMeeting(
+          `Demo: ${subject!.name}`,
+          startISO,
+          durationMin > 0 ? durationMin : 60,
+          'Asia/Dubai'
+        );
+        await prisma.demoBooking.update({
+          where: { id: booking.id },
+          data: {
+            meetingLink: meeting.joinUrl,
+            meetingPassword: meeting.password,
+            zoomMeetingId: meeting.meetingId,
+          },
+        });
+        (booking as any).meetingLink = meeting.joinUrl;
+        (booking as any).meetingPassword = meeting.password;
+      } catch (err) {
+        console.error('Zoom meeting creation failed for demo (non-blocking):', err);
+      }
+    }
 
     return formatDemoBooking(booking as unknown as Record<string, unknown>);
   }

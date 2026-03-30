@@ -37,6 +37,8 @@ import TutorAvailability from "@/pages/tutor-dashboard/TutorAvailability";
 import TutorSettings from "@/pages/tutor-dashboard/TutorSettings";
 import TutorCourseMaterials from "@/pages/tutor-dashboard/TutorCourseMaterials";
 import TutorBookings from "@/pages/tutor-dashboard/TutorBookings";
+import TutorEnrollments from "@/pages/tutor-dashboard/TutorEnrollments";
+import TutorEnrollmentDetail from "@/pages/tutor-dashboard/TutorEnrollmentDetail";
 
 // Public Pages
 import DemoRequestPublic from "@/pages/DemoRequestPublic";
@@ -79,6 +81,8 @@ import ParentAssessments from "@/pages/parent-dashboard/ParentAssessments";
 import ParentSettings from "@/pages/parent-dashboard/ParentSettings";
 import ParentMessages from "@/pages/parent-dashboard/ParentMessages";
 import ParentBookings from "@/pages/parent-dashboard/ParentBookings";
+import NewEnrollment from "@/pages/parent-dashboard/NewEnrollment";
+import EnrollmentDetail from "@/pages/parent-dashboard/EnrollmentDetail";
 
 // Consultant Dashboard Pages
 import ConsultantDashboard from "@/pages/consultant-dashboard/ConsultantDashboard";
@@ -89,7 +93,6 @@ import DemoRequests from "@/pages/consultant-dashboard/DemoRequests";
 import ConsultantEarnings from "@/pages/consultant-dashboard/Earnings";
 import ConsultantSettings from "@/pages/consultant-dashboard/ConsultantSettings";
 import ConsultantDemoBookings from "@/pages/consultant-dashboard/DemoBookings";
-import ConsultantClassBookings from "@/pages/consultant-dashboard/ClassBookings";
 
 // Resources Pages
 import BlogArticles from "@/pages/resources/BlogArticles";
@@ -113,8 +116,8 @@ import AdminNotifications from "@/pages/admin/AdminNotifications";
 import TutorManagement from "@/pages/admin/TutorManagement";
 import AdminDemoRequests from "@/pages/admin/AdminDemoRequests";
 import AdminDemoBookings from "@/pages/admin/AdminDemoBookings";
-import AdminClassBookings from "@/pages/admin/AdminClassBookings";
 import AdminApplications from "@/pages/admin/AdminApplications";
+import AdminEnrollments from "@/pages/admin/AdminEnrollments";
 
 const AppRoutes = () => {
   return (
@@ -197,6 +200,14 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="parent"><ParentEnrolledClasses /></ProtectedRoute>}
       />
       <Route
+        path="/parent-dashboard/enrollments/new"
+        element={<ProtectedRoute requiredRole="parent"><NewEnrollment /></ProtectedRoute>}
+      />
+      <Route
+        path="/parent-dashboard/enrollments/:id"
+        element={<ProtectedRoute requiredRole="parent"><EnrollmentDetail /></ProtectedRoute>}
+      />
+      <Route
         path="/parent-dashboard/assessments"
         element={<ProtectedRoute requiredRole="parent"><ParentAssessments /></ProtectedRoute>}
       />
@@ -243,6 +254,14 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="tutor"><TutorBookings /></ProtectedRoute>}
       />
       <Route
+        path="/tutor-dashboard/enrollments"
+        element={<ProtectedRoute requiredRole="tutor"><TutorEnrollments /></ProtectedRoute>}
+      />
+      <Route
+        path="/tutor-dashboard/enrollments/:id"
+        element={<ProtectedRoute requiredRole="tutor"><TutorEnrollmentDetail /></ProtectedRoute>}
+      />
+      <Route
         path="/tutor-dashboard/assessments"
         element={<ProtectedRoute requiredRole="tutor"><TutorAssessments /></ProtectedRoute>}
       />
@@ -278,7 +297,7 @@ const AppRoutes = () => {
         <Route path="tutors" element={<TutorManagement />} />
         <Route path="demo-requests" element={<AdminDemoRequests />} />
         <Route path="demo-bookings" element={<AdminDemoBookings />} />
-        <Route path="class-bookings" element={<AdminClassBookings />} />
+        <Route path="enrollments" element={<AdminEnrollments />} />
         <Route path="applications" element={<AdminApplications />} />
         <Route path="notifications" element={<AdminNotifications />} />
       </Route>
@@ -324,10 +343,6 @@ const AppRoutes = () => {
       <Route
         path="/consultant-dashboard/demo-bookings"
         element={<ProtectedRoute requiredRole="consultant"><ConsultantDemoBookings /></ProtectedRoute>}
-      />
-      <Route
-        path="/consultant-dashboard/class-bookings"
-        element={<ProtectedRoute requiredRole="consultant"><ConsultantClassBookings /></ProtectedRoute>}
       />
       <Route
         path="/consultant-dashboard/allocations"
