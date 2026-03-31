@@ -39,6 +39,8 @@ import TutorCourseMaterials from "@/pages/tutor-dashboard/TutorCourseMaterials";
 import TutorBookings from "@/pages/tutor-dashboard/TutorBookings";
 import TutorEnrollments from "@/pages/tutor-dashboard/TutorEnrollments";
 import TutorRecordingsPage from "@/pages/tutor-dashboard/TutorRecordingsPage";
+import TutorBatches from "@/pages/tutor-dashboard/TutorBatches";
+import TutorBatchDetail from "@/pages/tutor-dashboard/TutorBatchDetail";
 import TutorEnrollmentDetail from "@/pages/tutor-dashboard/TutorEnrollmentDetail";
 
 // Public Pages
@@ -85,6 +87,9 @@ import ParentMessages from "@/pages/parent-dashboard/ParentMessages";
 import ParentBookings from "@/pages/parent-dashboard/ParentBookings";
 import NewEnrollment from "@/pages/parent-dashboard/NewEnrollment";
 import EnrollmentDetail from "@/pages/parent-dashboard/EnrollmentDetail";
+import BrowseBatches from "@/pages/parent-dashboard/BrowseBatches";
+import BatchDetail from "@/pages/parent-dashboard/BatchDetail";
+import MyBatches from "@/pages/parent-dashboard/MyBatches";
 
 // Consultant Dashboard Pages
 import ConsultantDashboard from "@/pages/consultant-dashboard/ConsultantDashboard";
@@ -120,6 +125,7 @@ import AdminDemoRequests from "@/pages/admin/AdminDemoRequests";
 import AdminDemoBookings from "@/pages/admin/AdminDemoBookings";
 import AdminApplications from "@/pages/admin/AdminApplications";
 import AdminEnrollments from "@/pages/admin/AdminEnrollments";
+import AdminBatches from "@/pages/admin/AdminBatches";
 
 const AppRoutes = () => {
   return (
@@ -206,6 +212,18 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="parent"><ParentRecordings /></ProtectedRoute>}
       />
       <Route
+        path="/parent-dashboard/batches"
+        element={<ProtectedRoute requiredRole="parent"><BrowseBatches /></ProtectedRoute>}
+      />
+      <Route
+        path="/parent-dashboard/batches/:id"
+        element={<ProtectedRoute requiredRole="parent"><BatchDetail /></ProtectedRoute>}
+      />
+      <Route
+        path="/parent-dashboard/my-batches"
+        element={<ProtectedRoute requiredRole="parent"><MyBatches /></ProtectedRoute>}
+      />
+      <Route
         path="/parent-dashboard/enrollments/new"
         element={<ProtectedRoute requiredRole="parent"><NewEnrollment /></ProtectedRoute>}
       />
@@ -268,6 +286,14 @@ const AppRoutes = () => {
         element={<ProtectedRoute requiredRole="tutor"><TutorRecordingsPage /></ProtectedRoute>}
       />
       <Route
+        path="/tutor-dashboard/batches"
+        element={<ProtectedRoute requiredRole="tutor"><TutorBatches /></ProtectedRoute>}
+      />
+      <Route
+        path="/tutor-dashboard/batches/:id"
+        element={<ProtectedRoute requiredRole="tutor"><TutorBatchDetail /></ProtectedRoute>}
+      />
+      <Route
         path="/tutor-dashboard/enrollments/:id"
         element={<ProtectedRoute requiredRole="tutor"><TutorEnrollmentDetail /></ProtectedRoute>}
       />
@@ -308,6 +334,7 @@ const AppRoutes = () => {
         <Route path="demo-requests" element={<AdminDemoRequests />} />
         <Route path="demo-bookings" element={<AdminDemoBookings />} />
         <Route path="enrollments" element={<AdminEnrollments />} />
+        <Route path="batches" element={<AdminBatches />} />
         <Route path="applications" element={<AdminApplications />} />
         <Route path="notifications" element={<AdminNotifications />} />
       </Route>

@@ -328,8 +328,9 @@ const AdminEnrollments = () => {
                       <TableCell className="text-xs max-w-[200px]">
                         {(e.schedule || [])
                           .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-                          .map((s) => `${DAY_LABELS[s.dayOfWeek]} ${displayTimeRange(s.startTime, e.duration, getTz(e))}`)
-                          .join(", ")}
+                          .map((s, i) => (
+                            <div key={i}>{DAY_LABELS[s.dayOfWeek]} {displayTimeRange(s.startTime, e.duration, getTz(e))}</div>
+                          ))}
                       </TableCell>
                       <TableCell>
                         <Badge className={statusColors[e.status] || "bg-gray-100 text-gray-600"}>

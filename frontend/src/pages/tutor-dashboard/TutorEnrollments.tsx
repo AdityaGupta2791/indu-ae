@@ -135,12 +135,15 @@ const TutorEnrollments = () => {
                       <User className="h-3 w-3" />
                       Parent: {enrollment.parent.firstName} {enrollment.parent.lastName}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {(enrollment.schedule || [])
-                        .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-                        .map((s) => `${DAY_LABELS[s.dayOfWeek]} ${displayTimeRange(s.startTime, enrollment.duration, enrollment.parent?.user?.timezone || "Asia/Dubai")}`)
-                        .join(", ")}
+                    <span className="flex items-start gap-1">
+                      <Calendar className="h-3 w-3 mt-0.5" />
+                      <span className="flex flex-col">
+                        {(enrollment.schedule || [])
+                          .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+                          .map((s, i) => (
+                            <span key={i}>{DAY_LABELS[s.dayOfWeek]} {displayTimeRange(s.startTime, enrollment.duration, enrollment.parent?.user?.timezone || "Asia/Dubai")}</span>
+                          ))}
+                      </span>
                     </span>
                     {enrollment.zoomLink && enrollment.status === "ACTIVE" && (
                       <a

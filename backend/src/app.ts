@@ -18,6 +18,7 @@ import applicationRoutes from './modules/application/application.routes';
 import enrollmentRoutes from './modules/enrollment/enrollment.routes';
 import paymentRoutes from './modules/payment/payment.routes';
 import recordingRoutes from './modules/recording/recording.routes';
+import batchRoutes from './modules/batch/batch.routes';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use(`${apiPrefix}`, applicationRoutes);
 app.use(`${apiPrefix}`, enrollmentRoutes);
 app.use(`${apiPrefix}`, paymentRoutes);
 app.use(`${apiPrefix}`, recordingRoutes);
+app.use(`${apiPrefix}`, batchRoutes);
 
 // 404 handler
 app.use((_req, res) => {

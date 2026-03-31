@@ -51,6 +51,8 @@ const navItems = [
   { href: "/parent-dashboard/bookings", label: "My Bookings", icon: CalendarCheck },
   { href: "/parent-dashboard/credits", label: "Credits", icon: CreditCard },
   { href: "/parent-dashboard/enrolled-classes", label: "Enrolled Classes", icon: BookOpen },
+  { href: "/parent-dashboard/batches", label: "Browse Classes", icon: Search },
+  { href: "/parent-dashboard/my-batches", label: "My Group Classes", icon: Users },
   { href: "/parent-dashboard/recordings", label: "Recordings", icon: Video },
   { href: "/parent-dashboard/assessments", label: "Assessments", icon: ClipboardList },
   { href: "/parent-dashboard/messages", label: "Messages", icon: MessageSquare },
@@ -83,6 +85,10 @@ const ParentDashboardLayout = ({ children }: ParentDashboardLayoutProps) => {
 
   const isActiveRoute = (path: string) => {
     if (path === "/parent-dashboard") {
+      return location.pathname === path;
+    }
+    // Exact match for Browse Classes to avoid highlighting on /batches/:id
+    if (path === "/parent-dashboard/batches") {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);

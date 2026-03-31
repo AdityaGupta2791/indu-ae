@@ -17,6 +17,7 @@ import {
   FileText,
   CalendarCheck,
   Video,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -196,6 +197,7 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
               { href: "/tutor-dashboard/demo-requests", label: "Demo Requests", icon: Calendar },
               { href: "/tutor-dashboard/bookings", label: "My Bookings", icon: CalendarCheck },
               { href: "/tutor-dashboard/enrollments", label: "Enrollments", icon: BookOpen },
+              { href: "/tutor-dashboard/batches", label: "Group Classes", icon: Users },
               { href: "/tutor-dashboard/recordings", label: "Recordings", icon: Video },
               { href: "/tutor-dashboard/assessments", label: "Assessments", icon: ClipboardList },
               { href: "/tutor-dashboard/earnings", label: "Earnings", icon: BarChart },
@@ -255,6 +257,7 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
                   { icon: Calendar, label: "Demo Requests", href: "/tutor-dashboard/demo-requests" },
                   { icon: CalendarCheck, label: "My Bookings", href: "/tutor-dashboard/bookings" },
                   { icon: BookOpen, label: "Enrollments", href: "/tutor-dashboard/enrollments" },
+                  { icon: Users, label: "Group Classes", href: "/tutor-dashboard/batches" },
                   { icon: Video, label: "Recordings", href: "/tutor-dashboard/recordings" },
                   { icon: ClipboardList, label: "Assessments", href: "/tutor-dashboard/assessments" },
                   { icon: BarChart, label: "Earnings", href: "/tutor-dashboard/earnings" },

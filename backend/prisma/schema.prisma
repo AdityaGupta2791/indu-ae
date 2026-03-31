@@ -65,6 +65,14 @@ enum ClassType {
   GROUP
 }
 
+enum BatchStatus {
+  OPEN
+  FULL
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
 enum SessionStatus {
   SCHEDULED
   CONFIRMED
@@ -220,6 +228,7 @@ model ParentProfile {
   creditTransactions CreditTransaction[]
   enrollments  Enrollment[]
   payments     Payment[]
+  batchStudents BatchStudent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -242,6 +251,7 @@ model Student {
   subjectNeeds   StudentSubject[]
   demoBookings   DemoBooking[]
   enrollments    Enrollment[]
+  batchStudents  BatchStudent[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -292,6 +302,7 @@ model TutorProfile {
   // M6: Demo Bookings
   demoBookings  DemoBooking[]
   enrollments   Enrollment[]
+  batches       Batch[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -350,6 +361,7 @@ model Subject {
   courses             Course[]
   demoBookings        DemoBooking[]
   enrollments         Enrollment[]
+  batches             Batch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -367,6 +379,7 @@ model GradeLevel {
   students     Student[]
   demoRequests DemoRequest[]
   courses      Course[]
+  batches      Batch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -603,12 +616,14 @@ model CreditTransaction {
   type           CreditTransactionType
   amount         Int                   // Positive always — direction determined by type
   description          String?
-  enrollmentSessionId  String?               @unique
-  paymentId            String?               @unique
+  enrollmentSessionId      String?               @unique
+  paymentId                String?               @unique
+  batchSessionCreditId     String?               @unique
 
-  parent             ParentProfile      @relation(fields: [parentId], references: [id], onDelete: Cascade)
-  enrollmentSession  EnrollmentSession? @relation(fields: [enrollmentSessionId], references: [id])
-  payment            Payment?           @relation(fields: [paymentId], references: [id])
+  parent               ParentProfile        @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  enrollmentSession    EnrollmentSession?   @relation(fields: [enrollmentSessionId], references: [id])
+  payment              Payment?             @relation(fields: [paymentId], references: [id])
+  batchSessionCredit   BatchSessionCredit?  @relation(fields: [batchSessionCreditId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -813,8 +828,10 @@ model Recording {
   readyForZoomDeletion  DateTime?       // Set to now()+2hrs when all files AVAILABLE
   zoomDeletedAt         DateTime?       // When actually deleted from Zoom
 
+  batchSessionId        String?         @unique
   enrollmentSession     EnrollmentSession? @relation(fields: [enrollmentSessionId], references: [id])
   demoBooking           DemoBooking?       @relation(fields: [demoBookingId], references: [id])
+  batchSession          BatchSession?      @relation(fields: [batchSessionId], references: [id])
   files                 RecordingFile[]
 
   createdAt             DateTime        @default(now())
@@ -850,5 +867,115 @@ model RecordingFile {
 
   @@index([recordingId])
   @@index([status, retryCount])
+}
+
+// ============================================
+// M7 V2: BATCH / GROUP CLASSES
+// ============================================
+
+model Batch {
+  id              String      @id @default(uuid())
+  name            String      // e.g. "Grade 10 Mathematics - Batch A"
+  description     String?
+  subjectId       String
+  tutorId         String
+  gradeId         String
+  status          BatchStatus @default(OPEN)
+
+  // Schedule: same JSON format as Enrollment
+  schedule        Json        // [{ dayOfWeek: 1, startTime: "16:00" }]
+  duration        Int         // 60, 90, or 120 minutes
+
+  // Student limits
+  minStudents     Int         @default(1)
+  maxStudents     Int         @default(6)
+
+  // Credits (group rate — set by admin, typically lower than 1:1)
+  creditsPerSession Int
+
+  // Zoom (one shared link for the batch)
+  zoomLink        String?
+  zoomPassword    String?
+  zoomMeetingId   BigInt?
+
+  // Dates
+  startDate       DateTime?   @db.Date
+  lastGeneratedDate DateTime?
+
+  // Relations
+  subject         Subject      @relation(fields: [subjectId], references: [id])
+  tutor           TutorProfile @relation(fields: [tutorId], references: [id])
+  grade           GradeLevel   @relation(fields: [gradeId], references: [id])
+  students        BatchStudent[]
+  sessions        BatchSession[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([status])
+  @@index([subjectId])
+  @@index([tutorId])
+  @@index([gradeId])
+}
+
+model BatchStudent {
+  id          String    @id @default(uuid())
+  batchId     String
+  studentId   String
+  parentId    String
+  isActive    Boolean   @default(true)
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+  leaveReason String?
+
+  batch       Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student     Student        @relation(fields: [studentId], references: [id])
+  parent      ParentProfile  @relation(fields: [parentId], references: [id])
+
+  @@unique([batchId, studentId])
+  @@index([batchId])
+  @@index([studentId])
+  @@index([parentId])
+}
+
+model BatchSession {
+  id              String        @id @default(uuid())
+  batchId         String
+  status          SessionStatus @default(SCHEDULED)
+
+  scheduledDate   DateTime      @db.Date
+  scheduledStart  String        // "HH:mm"
+  scheduledEnd    String        // "HH:mm"
+
+  cancelledAt     DateTime?
+  cancelReason    String?
+
+  batch           Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  creditDeductions BatchSessionCredit[]
+  recording       Recording?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([batchId, scheduledDate, scheduledStart])
+  @@index([batchId])
+  @@index([scheduledDate])
+  @@index([status])
+}
+
+model BatchSessionCredit {
+  id               String         @id @default(uuid())
+  batchSessionId   String
+  parentId         String
+  studentId        String
+  creditsCharged   Int
+  creditDeductedAt DateTime?
+
+  batchSession      BatchSession      @relation(fields: [batchSessionId], references: [id], onDelete: Cascade)
+  creditTransaction CreditTransaction?
+
+  @@unique([batchSessionId, studentId])
+  @@index([batchSessionId])
+  @@index([parentId])
 }
 

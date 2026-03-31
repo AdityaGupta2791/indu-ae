@@ -155,13 +155,14 @@ const TutorEnrollmentDetail = () => {
               </div>
               <div className="flex items-center gap-2 text-muted-foreground col-span-2 sm:col-span-3">
                 <Calendar className="h-4 w-4 shrink-0" />
-                <span>
+                <div>
                   {(enrollment.schedule || [])
                     .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-                    .map((s) => `${DAY_LABELS[s.dayOfWeek]} ${displayTimeRange(s.startTime, enrollment.duration, parentTz)}`)
-                    .join(", ")}
-                  {" · "}{(enrollment.schedule || []).length}x/week
-                </span>
+                    .map((s, i) => (
+                      <div key={i}>{DAY_LABELS[s.dayOfWeek]} {displayTimeRange(s.startTime, enrollment.duration, parentTz)}</div>
+                    ))}
+                  <span className="text-muted-foreground">{(enrollment.schedule || []).length}x/week</span>
+                </div>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <CreditCard className="h-4 w-4" />

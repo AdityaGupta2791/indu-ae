@@ -51,6 +51,7 @@ const navItems = [
   { href: "/admin/demo-requests", label: "Demo Requests", icon: FileText },
   { href: "/admin/demo-bookings", label: "Demo Bookings", icon: Video },
   { href: "/admin/enrollments", label: "Enrollments", icon: CalendarCheck },
+  { href: "/admin/batches", label: "Batch Classes", icon: ClipboardList },
   { href: "/admin/payments", label: "Credits & Wallets", icon: CreditCard },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare },
