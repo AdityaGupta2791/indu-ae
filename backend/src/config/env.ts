@@ -34,6 +34,11 @@ const envSchema = z.object({
   AWS_REGION: z.string().optional(),
   AWS_S3_RECORDINGS_BUCKET: z.string().optional(),
 
+  // AWS SES (Email Notifications)
+  AWS_SES_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SES_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_SES_REGION: z.string().optional(),
+
   // Recording config
   RECORDING_MAX_RETRIES: z.string().default('3').transform(Number),
 });

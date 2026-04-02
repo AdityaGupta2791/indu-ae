@@ -135,6 +135,29 @@ export class PaymentService {
       `Purchased ${payment.credits} credits (${payment.currency.toUpperCase()} ${(payment.amountInFils / 100).toFixed(2)})`,
       payment.id
     );
+
+    // Notify parent (non-blocking)
+    try {
+      const { NotificationService } = await import('../notification/notification.service');
+      const { paymentConfirmedParent } = await import('../notification/templates/event-templates');
+      const parent = await prisma.parentProfile.findUnique({
+        where: { id: payment.parentId },
+        include: { user: { select: { id: true, email: true } } },
+      });
+      if (parent) {
+        const ns = new NotificationService();
+        const template = paymentConfirmedParent(payment.credits, (payment.amountInFils / 100).toFixed(2));
+        await ns.send({
+          userId: parent.user.id,
+          userEmail: parent.user.email,
+          type: 'PAYMENT_CONFIRMED',
+          ...template,
+          emailHtml: template.html,
+        });
+      }
+    } catch (err) {
+      console.error('Payment notification failed (non-blocking):', err);
+    }
   }
 
   private async handleCheckoutExpired(session: Stripe.Checkout.Session) {

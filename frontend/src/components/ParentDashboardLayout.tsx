@@ -36,6 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -125,35 +126,7 @@ const ParentDashboardLayout = ({ children }: ParentDashboardLayoutProps) => {
           </Link>
 
           <div className="ml-auto flex items-center gap-4">
-            <Button variant="outline" size="sm" className="hidden md:flex items-center gap-1 text-xs">
-              <HelpCircle className="h-3.5 w-3.5" />
-              <span>Help</span>
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Demo class scheduled</p>
-                    <p className="text-xs text-muted-foreground">Math demo with Dr. Meena Iyer tomorrow at 4 PM</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">New assessment result</p>
-                    <p className="text-xs text-muted-foreground">Siddharth scored 85/100 in Algebra Quiz</p>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NotificationBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

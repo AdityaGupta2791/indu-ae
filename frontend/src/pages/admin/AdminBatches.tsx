@@ -18,13 +18,12 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Play, XCircle, Users, Trash2 } from "lucide-react";
+import { Loader2, Plus, Play, XCircle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { adminBatchService, type Batch } from "@/services/batch.service";
-import { adminCourseService } from "@/services/course.service";
 import { adminTutorService } from "@/services/tutor.service";
 import { referenceService } from "@/services/user.service";
 
@@ -294,9 +293,17 @@ const AdminBatches = () => {
 
                 {/* Zoom link */}
                 {selected.zoomLink && (
-                  <div className="flex items-center gap-2 bg-blue-50 rounded p-2 text-sm">
-                    <a href={selected.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline truncate">{selected.zoomLink}</a>
-                    {selected.zoomPassword && <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded font-mono shrink-0">pw: {selected.zoomPassword}</span>}
+                  <div className="bg-blue-50 rounded p-3 text-sm space-y-1">
+                    <div>
+                      <span className="text-muted-foreground text-xs">Zoom Link</span>
+                      <a href={selected.zoomLink} target="_blank" rel="noopener noreferrer" className="block text-blue-600 hover:underline truncate">{selected.zoomLink}</a>
+                    </div>
+                    {selected.zoomPassword && (
+                      <div>
+                        <span className="text-muted-foreground text-xs">Password</span>
+                        <span className="block bg-gray-100 px-2 py-0.5 rounded font-mono select-all text-sm w-fit">{selected.zoomPassword}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 

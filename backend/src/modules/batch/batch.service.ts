@@ -336,6 +336,26 @@ export class BatchService {
       await prisma.batch.update({ where: { id: batchId }, data: { status: 'FULL' } });
     }
 
+    // Notify parent + tutor (non-blocking)
+    try {
+      const { NotificationService } = await import('../notification/notification.service');
+      const { batchJoinedParent, batchJoinedTutor } = await import('../notification/templates/event-templates');
+      const ns = new NotificationService();
+      const parentUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true } });
+      const tutorProfile = await prisma.tutorProfile.findUnique({ where: { id: batch.tutorId }, include: { user: { select: { id: true, email: true } } } });
+      const studentRecord = await prisma.student.findUnique({ where: { id: data.studentId }, select: { firstName: true, lastName: true } });
+      if (parentUser && studentRecord) {
+        const pTemplate = batchJoinedParent(`${studentRecord.firstName} ${studentRecord.lastName}`, batch.name);
+        await ns.send({ userId: parentUser.id, userEmail: parentUser.email, type: 'BATCH_JOINED', ...pTemplate, emailHtml: pTemplate.html });
+      }
+      if (tutorProfile && studentRecord) {
+        const tTemplate = batchJoinedTutor(`${studentRecord.firstName} ${studentRecord.lastName}`, batch.name);
+        await ns.send({ userId: tutorProfile.user.id, userEmail: tutorProfile.user.email, type: 'BATCH_JOINED', ...tTemplate, emailHtml: tTemplate.html });
+      }
+    } catch (err) {
+      console.error('Batch join notification failed (non-blocking):', err);
+    }
+
     return { message: 'Successfully joined the batch', spotsRemaining: batch.maxStudents - count };
   }
 

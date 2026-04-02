@@ -84,6 +84,14 @@ enum SessionStatus {
   MISSED_TUTOR
 }
 
+enum NotificationType {
+  ENROLLMENT_CREATED
+  SESSION_REMINDER
+  PAYMENT_CONFIRMED
+  BATCH_JOINED
+  PAYOUT_RECORDED
+}
+
 enum ApplicationStatus {
   PENDING
   APPROVED
@@ -93,6 +101,11 @@ enum ApplicationStatus {
 enum ApplicationRole {
   TUTOR
   CONSULTANT
+}
+
+enum EarningStatus {
+  UNPAID
+  PAID
 }
 
 // ============================================
@@ -229,6 +242,7 @@ model ParentProfile {
   enrollments  Enrollment[]
   payments     Payment[]
   batchStudents BatchStudent[]
+  reviews      Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -248,10 +262,11 @@ model Student {
   user   User?         @relation(fields: [userId], references: [id])
   grade  GradeLevel    @relation(fields: [gradeId], references: [id])
 
-  subjectNeeds   StudentSubject[]
-  demoBookings   DemoBooking[]
-  enrollments    Enrollment[]
-  batchStudents  BatchStudent[]
+  subjectNeeds      StudentSubject[]
+  demoBookings      DemoBooking[]
+  enrollments       Enrollment[]
+  batchStudents     BatchStudent[]
+  assessmentResults AssessmentResult[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -303,6 +318,12 @@ model TutorProfile {
   demoBookings  DemoBooking[]
   enrollments   Enrollment[]
   batches       Batch[]
+
+  // M11, M15, M16: Post-booking
+  assessmentResults AssessmentResult[]
+  reviews           Review[]
+  tutorEarnings     TutorEarning[]
+  payoutRecords     PayoutRecord[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -362,6 +383,7 @@ model Subject {
   demoBookings        DemoBooking[]
   enrollments         Enrollment[]
   batches             Batch[]
+  assessmentResults   AssessmentResult[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -549,7 +571,7 @@ model TutorCourse {
   id        String @id @default(uuid())
   tutorId   String
   courseId   String
-  tutorRate Int    // Rate in fils per class (1 AED = 100 fils)
+  tutorRate Int    // Tutor's earning rate in paise per class (1 INR = 100 paise)
 
   tutor  TutorProfile @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   course Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -723,6 +745,7 @@ model Enrollment {
   subject          Subject          @relation(fields: [subjectId], references: [id])
   tutor            TutorProfile     @relation(fields: [tutorId], references: [id])
   sessions         EnrollmentSession[]
+  assessmentResults AssessmentResult[]
 
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -755,6 +778,10 @@ model EnrollmentSession {
   enrollment       Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   creditTransaction CreditTransaction?
   recording        Recording?
+
+  // M15, M16: Post-booking
+  review           Review?
+  tutorEarning     TutorEarning?
 
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -977,5 +1004,145 @@ model BatchSessionCredit {
   @@unique([batchSessionId, studentId])
   @@index([batchSessionId])
   @@index([parentId])
+}
+
+// ============================================
+// M11: ASSESSMENT RESULTS & PROGRESS
+// ============================================
+
+model AssessmentResult {
+  id           String    @id @default(uuid())
+  studentId    String
+  tutorId      String
+  subjectId    String
+  enrollmentId String?   // Optional link to enrollment
+  title        String    // e.g. "Unit 3 Math Test"
+  score        Float     // Score obtained
+  maxScore     Float     @default(100) // Maximum possible score
+  percentage   Float     // Computed: (score / maxScore) * 100
+  remarks      String?   // Tutor's feedback/notes
+  assessedAt   DateTime  // Date the assessment was taken (offline)
+
+  // Relations
+  student    Student       @relation(fields: [studentId], references: [id])
+  tutor      TutorProfile  @relation(fields: [tutorId], references: [id])
+  subject    Subject       @relation(fields: [subjectId], references: [id])
+  enrollment Enrollment?   @relation(fields: [enrollmentId], references: [id])
+  documents  AssessmentDocument[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([subjectId])
+  @@index([enrollmentId])
+  @@index([assessedAt])
+  @@index([createdAt])
+}
+
+model AssessmentDocument {
+  id                 String @id @default(uuid())
+  assessmentResultId String
+  title              String
+  fileUrl            String // S3 key
+  fileType           String // pdf, jpg, png, etc.
+  fileSizeKb         Int?
+
+  assessmentResult AssessmentResult @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([assessmentResultId])
+}
+
+// ============================================
+// M15: RATING & REVIEW
+// ============================================
+
+model Review {
+  id        String  @id @default(uuid())
+  bookingId String  @unique // One review per completed EnrollmentSession
+  tutorId   String
+  parentId  String
+  rating    Int     // 1-5 stars
+  comment   String? // Optional text review
+  isVisible Boolean @default(true) // Admin can hide inappropriate reviews
+
+  // Relations
+  booking EnrollmentSession @relation(fields: [bookingId], references: [id])
+  tutor   TutorProfile      @relation(fields: [tutorId], references: [id])
+  parent  ParentProfile     @relation(fields: [parentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tutorId])
+  @@index([parentId])
+  @@index([rating])
+  @@index([createdAt])
+}
+
+// ============================================
+// M16: TUTOR EARNINGS & PAYOUTS
+// ============================================
+
+model TutorEarning {
+  id           String        @id @default(uuid())
+  tutorId      String
+  bookingId    String        @unique // One earning per completed EnrollmentSession
+  amountInPaise Int          // Tutor's earning in paise (1 INR = 100 paise, from TutorCourse.tutorRate)
+  status       EarningStatus @default(UNPAID)
+  paidAt       DateTime?     // When admin marked as paid
+
+  // Relations
+  tutor   TutorProfile      @relation(fields: [tutorId], references: [id])
+  booking EnrollmentSession @relation(fields: [bookingId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tutorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PayoutRecord {
+  id                String   @id @default(uuid())
+  tutorId           String
+  totalAmountInPaise Int     // Total payout amount in paise (INR)
+  earningIds        String[] // Array of TutorEarning IDs included in this payout
+  notes             String?  // Admin notes
+  paidVia           String?  // "Bank Transfer", "Cash", etc.
+  referenceNo       String?  // Bank transfer reference number
+
+  // Relations
+  tutor TutorProfile @relation(fields: [tutorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([tutorId])
+  @@index([createdAt])
+}
+
+// ============================================
+// M12: NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  emailSent Boolean          @default(false)
+  metadata  Json?
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type])
 }
 

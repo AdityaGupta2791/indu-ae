@@ -44,7 +44,6 @@ const navItems = [
   { href: "/student-dashboard/saved-classes", label: "Saved Classes", icon: Heart },
   { href: "/student-dashboard/assessments", label: "Assessments", icon: ClipboardList },
   { href: "/student-dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/student-dashboard/help", label: "Help", icon: HelpCircle },
 ];
 
 const StudentDashboardLayout = ({ children }: StudentDashboardLayoutProps) => {
@@ -117,15 +116,6 @@ const StudentDashboardLayout = ({ children }: StudentDashboardLayoutProps) => {
           </div>
 
           <div className="ml-auto flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden md:flex items-center gap-1 text-xs"
-            >
-              <HelpCircle className="h-3.5 w-3.5" />
-              <span>Help</span>
-            </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">

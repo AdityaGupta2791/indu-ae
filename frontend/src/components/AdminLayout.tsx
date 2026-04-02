@@ -17,6 +17,8 @@ import {
   Video,
   ClipboardList,
   CalendarCheck,
+  Star,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,6 +40,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useToast } from "@/hooks/use-toast";
 import { adminApplicationService } from "@/services/application.service";
@@ -53,6 +56,9 @@ const navItems = [
   { href: "/admin/enrollments", label: "Enrollments", icon: CalendarCheck },
   { href: "/admin/batches", label: "Batch Classes", icon: ClipboardList },
   { href: "/admin/payments", label: "Credits & Wallets", icon: CreditCard },
+  { href: "/admin/assessment-results", label: "Assessments", icon: ClipboardList },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
+  { href: "/admin/earnings", label: "Earnings & Payouts", icon: DollarSign },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/messages", label: "Messages", icon: MessageSquare },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
@@ -135,52 +141,7 @@ const AdminLayout = () => {
           </div>
 
           <div className="ml-auto flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden md:flex items-center gap-1 text-xs"
-            >
-              <HelpCircle className="h-3.5 w-3.5" />
-              <span>Help</span>
-            </Button>
-
-            {/* Notification Bell Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">New tutor registration</p>
-                    <p className="text-xs text-muted-foreground">Priya Sharma submitted verification documents</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Payment issue detected</p>
-                    <p className="text-xs text-muted-foreground">3 failed transactions in the last hour</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Server load warning</p>
-                    <p className="text-xs text-muted-foreground">CPU usage exceeded 85% threshold</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer text-center">
-                  <Link to="/admin/notifications" className="w-full text-sm text-gray-600">
-                    View all notifications
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NotificationBell />
 
             {/* Avatar Dropdown */}
             <DropdownMenu>

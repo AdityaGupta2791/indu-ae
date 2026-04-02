@@ -1,15 +1,16 @@
-
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import TutorDashboardLayout from "@/components/TutorDashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -18,292 +19,340 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ClipboardList,
   Plus,
-  CheckCircle2,
-  Clock,
   FileText,
-  GraduationCap,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
-import { mockAssessments } from "@/data/mockPlatformData";
 import { useToast } from "@/hooks/use-toast";
-import type { Assessment } from "@/types/platform";
-
-const typeConfig = {
-  quiz: { label: "Quiz", color: "bg-blue-100 text-blue-700" },
-  assignment: { label: "Assignment", color: "bg-purple-100 text-purple-700" },
-  exam: { label: "Exam", color: "bg-red-100 text-red-700" },
-  "progress-report": { label: "Progress Report", color: "bg-green-100 text-green-700" },
-};
+import {
+  tutorAssessmentService,
+  AssessmentResult,
+  CreateAssessmentPayload,
+  TutorStudent,
+} from "@/services/assessment.service";
 
 const TutorAssessments = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("all");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newAssessment, setNewAssessment] = useState({
-    studentName: "",
-    subject: "",
-    type: "quiz" as Assessment["type"],
+  const [results, setResults] = useState<AssessmentResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  // Students for dropdown
+  const [myStudents, setMyStudents] = useState<TutorStudent[]>([]);
+
+  // Create dialog
+  const [createOpen, setCreateOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    studentId: "",
+    subjectId: "",
     title: "",
+    score: "",
     maxScore: "100",
     remarks: "",
+    assessedAt: new Date().toISOString().split("T")[0],
   });
 
-  // Filter assessments by this tutor (tutor_001 and tutor_002 for demo)
-  const myAssessments = mockAssessments.filter(
-    (a) => a.tutorId === "tutor_001" || a.tutorId === "tutor_002"
-  );
-
-  const filteredAssessments = useMemo(() => {
-    if (activeTab === "all") return myAssessments;
-    if (activeTab === "graded") return myAssessments.filter((a) => a.status === "graded");
-    if (activeTab === "pending") return myAssessments.filter((a) => a.status === "pending");
-    return myAssessments;
-  }, [activeTab, myAssessments]);
-
-  const gradedCount = myAssessments.filter((a) => a.status === "graded").length;
-  const pendingCount = myAssessments.filter((a) => a.status === "pending").length;
-
-  const handleCreate = () => {
-    if (!newAssessment.title || !newAssessment.studentName) {
-      toast({ title: "Missing info", description: "Please fill in required fields.", variant: "destructive" });
-      return;
+  const fetchResults = async () => {
+    setLoading(true);
+    try {
+      const res = await tutorAssessmentService.list({ page, limit: 20 });
+      setResults(res.data);
+      setTotalPages(res.meta.totalPages);
+      setTotal(res.meta.total);
+    } catch {
+      toast({ title: "Error", description: "Failed to load assessment results", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-    toast({ title: "Assessment Created", description: `"${newAssessment.title}" has been created and assigned.` });
-    setIsCreateOpen(false);
-    setNewAssessment({ studentName: "", subject: "", type: "quiz", title: "", maxScore: "100", remarks: "" });
   };
 
-  const handleGrade = (id: string) => {
-    toast({ title: "Grade Assessment", description: "Grading interface coming in next update." });
+  useEffect(() => { fetchResults(); }, [page]);
+  useEffect(() => {
+    tutorAssessmentService.getMyStudents().then(setMyStudents).catch(() => {});
+  }, []);
+
+  const handleCreate = async () => {
+    if (!form.studentId || !form.subjectId || !form.title || !form.score) {
+      toast({ title: "Validation", description: "Please fill all required fields", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await tutorAssessmentService.create({
+        ...form,
+        score: Number(form.score),
+        maxScore: Number(form.maxScore) || 100,
+      });
+      toast({ title: "Success", description: "Assessment result uploaded" });
+      setCreateOpen(false);
+      setForm({ studentId: "", subjectId: "", title: "", score: "", maxScore: "100", remarks: "", assessedAt: new Date().toISOString().split("T")[0] });
+      fetchResults();
+    } catch {
+      toast({ title: "Error", description: "Failed to upload result", variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await tutorAssessmentService.delete(id);
+      toast({ title: "Deleted", description: "Assessment result removed" });
+      fetchResults();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete result", variant: "destructive" });
+    }
   };
 
   return (
     <TutorDashboardLayout>
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-purple-800">Assessments</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Create and manage assessments, quizzes, and progress reports for your students.
-            </p>
+            <h1 className="text-2xl font-bold text-purple-800">Assessment Results</h1>
+            <p className="text-muted-foreground text-sm mt-1">Upload and manage assessment results for your students</p>
           </div>
-          <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setIsCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Assessment
+          <Button className="mt-4 md:mt-0" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Upload Result
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <ClipboardList className="h-5 w-5 text-purple-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{myAssessments.length}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-white shadow-sm rounded-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-purple-100 p-3 rounded-full">
+                <ClipboardList className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Results</p>
+                <p className="text-xl font-bold">{total}</p>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{gradedCount}</p>
-              <p className="text-xs text-muted-foreground">Graded</p>
+          <Card className="bg-white shadow-sm rounded-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-green-100 p-3 rounded-full">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Avg Score</p>
+                <p className="text-xl font-bold">
+                  {results.length > 0
+                    ? `${Math.round(results.reduce((s, r) => s + r.percentage, 0) / results.length)}%`
+                    : "—"}
+                </p>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Clock className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="h-5 w-5 text-blue-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">
-                {(() => {
-                  const scored = myAssessments.filter((a) => a.score !== undefined && a.maxScore !== undefined);
-                  if (scored.length === 0) return "—";
-                  return Math.round(scored.reduce((s, a) => s + ((a.score! / a.maxScore!) * 100), 0) / scored.length) + "%";
-                })()}
-              </p>
-              <p className="text-xs text-muted-foreground">Avg Score</p>
+          <Card className="bg-white shadow-sm rounded-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-blue-100 p-3 rounded-full">
+                <FileText className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">With Docs</p>
+                <p className="text-xl font-bold">
+                  {results.filter((r) => (r.documentsCount ?? 0) > 0).length}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">All ({myAssessments.length})</TabsTrigger>
-            <TabsTrigger value="graded">Graded ({gradedCount})</TabsTrigger>
-            <TabsTrigger value="pending">
-              Pending
-              {pendingCount > 0 && <Badge className="ml-1.5 text-xs bg-yellow-500">{pendingCount}</Badge>}
-            </TabsTrigger>
-          </TabsList>
+        {/* Results Table */}
+        <Card className="bg-white shadow-sm rounded-xl">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">All Results</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-medium text-gray-700">Title</TableHead>
+                    <TableHead className="font-medium text-gray-700">Student</TableHead>
+                    <TableHead className="font-medium text-gray-700">Subject</TableHead>
+                    <TableHead className="font-medium text-gray-700">Score</TableHead>
+                    <TableHead className="font-medium text-gray-700">Percentage</TableHead>
+                    <TableHead className="font-medium text-gray-700">Date</TableHead>
+                    <TableHead className="font-medium text-gray-700 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading...
+                      </TableCell>
+                    </TableRow>
+                  ) : results.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        No assessment results yet. Click "Upload Result" to add one.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    results.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.title}</TableCell>
+                        <TableCell>{r.studentName}</TableCell>
+                        <TableCell>{r.subject}</TableCell>
+                        <TableCell>{r.score}/{r.maxScore}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              r.percentage >= 80
+                                ? "bg-green-100 text-green-800"
+                                : r.percentage >= 50
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-red-100 text-red-800"
+                            }
+                            variant="outline"
+                          >
+                            {Math.round(r.percentage)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(r.assessedAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => handleDelete(r.id)}
+                          >
+                            Delete
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-          <TabsContent value={activeTab} className="mt-4">
-            {filteredAssessments.length > 0 ? (
-              <div className="space-y-3">
-                {filteredAssessments.map((assessment) => {
-                  const typeInfo = typeConfig[assessment.type];
-                  const scorePercent = assessment.score !== undefined && assessment.maxScore !== undefined
-                    ? Math.round((assessment.score / assessment.maxScore) * 100) : null;
-
-                  return (
-                    <Card key={assessment.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold">{assessment.title}</h3>
-                              <Badge className={`text-xs ${typeInfo.color}`}>{typeInfo.label}</Badge>
-                              <Badge className={`text-xs ${
-                                assessment.status === "graded" ? "bg-green-100 text-green-700" :
-                                assessment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                "bg-blue-100 text-blue-700"
-                              }`}>
-                                {assessment.status === "graded" ? "Graded" : assessment.status === "pending" ? "Pending" : "Submitted"}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
-                              <span>Student: <span className="font-medium text-foreground">{assessment.studentName}</span></span>
-                              <span>·</span>
-                              <span>{assessment.subject}</span>
-                              <span>·</span>
-                              <span>{assessment.date}</span>
-                            </div>
-                            {assessment.remarks && (
-                              <p className="text-sm text-muted-foreground mt-2 bg-gray-50 rounded p-2 italic">
-                                "{assessment.remarks}"
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="text-right flex-shrink-0">
-                            {scorePercent !== null ? (
-                              <div>
-                                <p className={`text-2xl font-bold ${
-                                  scorePercent >= 80 ? "text-green-600" :
-                                  scorePercent >= 60 ? "text-yellow-600" : "text-red-600"
-                                }`}>
-                                  {assessment.score}/{assessment.maxScore}
-                                </p>
-                                {assessment.grade && (
-                                  <Badge variant="outline" className="mt-1 bg-green-50 text-green-700">
-                                    Grade {assessment.grade}
-                                  </Badge>
-                                )}
-                              </div>
-                            ) : assessment.status === "pending" ? (
-                              <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={() => handleGrade(assessment.id)}>
-                                Grade
-                              </Button>
-                            ) : (
-                              <Badge variant="outline">Report</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="text-lg font-semibold">No assessments</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Create your first assessment for your students.
-                </p>
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+                <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
 
-        {/* Create Assessment Dialog */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent className="sm:max-w-lg">
+        {/* Create Dialog */}
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Create New Assessment</DialogTitle>
+              <DialogTitle>Upload Assessment Result</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-2">
+            <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium">Title</label>
+                <Label>Student *</Label>
+                <Select
+                  value={form.studentId}
+                  onValueChange={(v) => setForm({ ...form, studentId: v, subjectId: "" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select student" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {myStudents.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.firstName} {s.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Subject *</Label>
+                <Select
+                  value={form.subjectId}
+                  onValueChange={(v) => setForm({ ...form, subjectId: v })}
+                  disabled={!form.studentId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={form.studentId ? "Select subject" : "Select student first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(myStudents.find((s) => s.id === form.studentId)?.subjects || []).map((subj) => (
+                      <SelectItem key={subj.id} value={subj.id}>
+                        {subj.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Title *</Label>
                 <Input
-                  placeholder="e.g. Chapter 5 Quiz"
-                  value={newAssessment.title}
-                  onChange={(e) => setNewAssessment({ ...newAssessment, title: e.target.value })}
-                  className="mt-1"
+                  placeholder="e.g. Unit 3 Math Test"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Student Name</label>
-                  <Input
-                    placeholder="Enter student name"
-                    value={newAssessment.studentName}
-                    onChange={(e) => setNewAssessment({ ...newAssessment, studentName: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Subject</label>
-                  <Input
-                    placeholder="e.g. Mathematics"
-                    value={newAssessment.subject}
-                    onChange={(e) => setNewAssessment({ ...newAssessment, subject: e.target.value })}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Type</label>
-                  <Select
-                    value={newAssessment.type}
-                    onValueChange={(val) => setNewAssessment({ ...newAssessment, type: val as Assessment["type"] })}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="quiz">Quiz</SelectItem>
-                      <SelectItem value="assignment">Assignment</SelectItem>
-                      <SelectItem value="exam">Exam</SelectItem>
-                      <SelectItem value="progress-report">Progress Report</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Max Score</label>
+                  <Label>Score *</Label>
                   <Input
                     type="number"
-                    value={newAssessment.maxScore}
-                    onChange={(e) => setNewAssessment({ ...newAssessment, maxScore: e.target.value })}
-                    className="mt-1"
+                    min={0}
+                    placeholder="e.g. 85"
+                    value={form.score}
+                    onChange={(e) => setForm({ ...form, score: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Max Score</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="100"
+                    value={form.maxScore}
+                    onChange={(e) => setForm({ ...form, maxScore: e.target.value })}
                   />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium">Remarks (optional)</label>
-                <Textarea
-                  placeholder="Any notes about this assessment..."
-                  value={newAssessment.remarks}
-                  onChange={(e) => setNewAssessment({ ...newAssessment, remarks: e.target.value })}
-                  className="mt-1"
-                  rows={3}
+                <Label>Assessment Date</Label>
+                <Input
+                  type="date"
+                  value={form.assessedAt}
+                  onChange={(e) => setForm({ ...form, assessedAt: e.target.value })}
                 />
               </div>
-              <Button onClick={handleCreate} className="w-full bg-purple-600 hover:bg-purple-700">
-                Create Assessment
-              </Button>
+              <div>
+                <Label>Remarks</Label>
+                <Textarea
+                  placeholder="Optional feedback or notes"
+                  value={form.remarks}
+                  onChange={(e) => setForm({ ...form, remarks: e.target.value })}
+                />
+              </div>
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreate} disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Upload Result
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

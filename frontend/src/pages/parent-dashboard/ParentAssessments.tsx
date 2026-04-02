@@ -1,7 +1,6 @@
-
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import ParentDashboardLayout from "@/components/ParentDashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,237 +10,347 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  GraduationCap,
-  ClipboardList,
-  FileText,
-  Clock,
-  CheckCircle2,
-  BookOpen,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import {
   TrendingUp,
+  TrendingDown,
+  Minus,
+  ClipboardList,
+  BarChart3,
+  Loader2,
 } from "lucide-react";
-import { mockAssessments, mockParents } from "@/data/mockPlatformData";
 import { useToast } from "@/hooks/use-toast";
+import {
+  parentAssessmentService,
+  AssessmentResult,
+  ChildProgress,
+  ProgressSubject,
+} from "@/services/assessment.service";
+import { useAuth } from "@/contexts/AuthContext";
 
-const typeConfig = {
-  quiz: { label: "Quiz", color: "bg-blue-100 text-blue-700", icon: ClipboardList },
-  assignment: { label: "Assignment", color: "bg-purple-100 text-purple-700", icon: FileText },
-  exam: { label: "Exam", color: "bg-red-100 text-red-700", icon: GraduationCap },
-  "progress-report": { label: "Progress Report", color: "bg-green-100 text-green-700", icon: TrendingUp },
-};
+const SUBJECT_COLORS = [
+  "#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF4444",
+  "#EC4899", "#6366F1", "#14B8A6", "#F97316", "#84CC16",
+];
 
-const statusConfig = {
-  pending: { label: "Pending", color: "bg-yellow-100 text-yellow-700" },
-  submitted: { label: "Submitted", color: "bg-blue-100 text-blue-700" },
-  graded: { label: "Graded", color: "bg-green-100 text-green-700" },
+const TrendIcon = ({ trend }: { trend: string }) => {
+  if (trend === "improving") return <TrendingUp className="h-4 w-4 text-green-600" />;
+  if (trend === "declining") return <TrendingDown className="h-4 w-4 text-red-600" />;
+  return <Minus className="h-4 w-4 text-gray-400" />;
 };
 
 const ParentAssessments = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("all");
-  const [childFilter, setChildFilter] = useState("all");
+  const { user } = useAuth();
 
-  // Get all children names from mock data
-  const allChildren = mockParents.flatMap((p) => p.children);
-  const childNames = [...new Set(mockAssessments.map((a) => a.studentName))];
+  // Children state
+  const [children, setChildren] = useState<{ id: string; firstName: string; lastName: string }[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string>("");
 
-  const filteredAssessments = useMemo(() => {
-    let result = [...mockAssessments];
+  // Progress data
+  const [progress, setProgress] = useState<ChildProgress | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
 
-    if (activeTab === "graded") {
-      result = result.filter((a) => a.status === "graded");
-    } else if (activeTab === "pending") {
-      result = result.filter((a) => a.status === "pending" || a.status === "submitted");
+  // Results list
+  const [results, setResults] = useState<AssessmentResult[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Fetch children from user profile
+  useEffect(() => {
+    if (user && (user as any).children) {
+      setChildren((user as any).children);
+      if ((user as any).children.length > 0) {
+        setSelectedChildId((user as any).children[0].id);
+      }
     }
+  }, [user]);
 
-    if (childFilter !== "all") {
-      result = result.filter((a) => a.studentName === childFilter);
+  // Fetch progress when child changes
+  useEffect(() => {
+    if (!selectedChildId) return;
+    const fetchProgress = async () => {
+      setLoadingProgress(true);
+      try {
+        const data = await parentAssessmentService.getChildProgress(selectedChildId);
+        setProgress(data);
+      } catch {
+        setProgress(null);
+      } finally {
+        setLoadingProgress(false);
+      }
+    };
+    fetchProgress();
+  }, [selectedChildId]);
+
+  // Fetch results when child or page changes
+  useEffect(() => {
+    if (!selectedChildId) return;
+    const fetchResults = async () => {
+      setLoadingResults(true);
+      try {
+        const res = await parentAssessmentService.getChildResults(selectedChildId, { page, limit: 20 });
+        setResults(res.data);
+        setTotalPages(res.meta.totalPages);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoadingResults(false);
+      }
+    };
+    fetchResults();
+  }, [selectedChildId, page]);
+
+  // Build chart data: merge all subjects' dataPoints into a single array by date
+  const buildChartData = (subjects: ProgressSubject[]) => {
+    const dateMap = new Map<string, Record<string, number>>();
+    for (const subj of subjects) {
+      for (const dp of subj.dataPoints) {
+        if (!dateMap.has(dp.date)) dateMap.set(dp.date, {});
+        dateMap.get(dp.date)![subj.subjectName] = dp.percentage;
+      }
     }
+    return Array.from(dateMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, values]) => ({ date, ...values }));
+  };
 
-    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [activeTab, childFilter]);
-
-  const gradedCount = mockAssessments.filter((a) => a.status === "graded").length;
-  const pendingCount = mockAssessments.filter((a) => a.status === "pending" || a.status === "submitted").length;
-  const avgScore = (() => {
-    const scored = mockAssessments.filter((a) => a.score !== undefined && a.maxScore !== undefined);
-    if (scored.length === 0) return 0;
-    return Math.round(
-      scored.reduce((sum, a) => sum + ((a.score! / a.maxScore!) * 100), 0) / scored.length
-    );
-  })();
+  const chartData = progress ? buildChartData(progress.subjects) : [];
+  const subjectNames = progress ? progress.subjects.map((s) => s.subjectName) : [];
 
   return (
     <ParentDashboardLayout>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-indigo-800">Assessments</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            View your children's assessment results, progress reports, and tutor feedback.
-          </p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-purple-800">Assessment Results & Progress</h1>
+            <p className="text-muted-foreground text-sm mt-1">Track your child's academic progress over time</p>
+          </div>
+          {children.length > 1 && (
+            <Select value={selectedChildId} onValueChange={(v) => { setSelectedChildId(v); setPage(1); }}>
+              <SelectTrigger className="w-[200px] mt-4 md:mt-0">
+                <SelectValue placeholder="Select child" />
+              </SelectTrigger>
+              <SelectContent>
+                {children.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.firstName} {c.lastName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <ClipboardList className="h-5 w-5 text-indigo-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{mockAssessments.length}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{gradedCount}</p>
-              <p className="text-xs text-muted-foreground">Graded</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <Clock className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="h-5 w-5 text-purple-500 mx-auto mb-1" />
-              <p className="text-2xl font-bold">{avgScore}%</p>
-              <p className="text-xs text-muted-foreground">Avg Score</p>
-            </CardContent>
-          </Card>
-        </div>
+        {!selectedChildId ? (
+          <p className="text-center py-12 text-gray-500">No children found on your profile.</p>
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+              <Card className="bg-white shadow-sm rounded-xl">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="bg-purple-100 p-3 rounded-full">
+                    <ClipboardList className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Assessments</p>
+                    <p className="text-xl font-bold">{progress?.totalAssessments ?? 0}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white shadow-sm rounded-xl">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="bg-green-100 p-3 rounded-full">
+                    <BarChart3 className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Overall Average</p>
+                    <p className="text-xl font-bold">{progress ? `${progress.overallAverage}%` : "—"}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white shadow-sm rounded-xl">
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Subjects Tracked</p>
+                    <p className="text-xl font-bold">{progress?.subjects.length ?? 0}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 mb-4">
-          <Select value={childFilter} onValueChange={setChildFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by child" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Children</SelectItem>
-              {childNames.map((name) => (
-                <SelectItem key={name} value={name}>{name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            {/* Progress Chart */}
+            <Card className="bg-white shadow-sm rounded-xl mb-8">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Over Time</h3>
+                {loadingProgress ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                  </div>
+                ) : chartData.length === 0 ? (
+                  <p className="text-center py-12 text-gray-500">No assessment data yet. Results will appear here once tutors upload them.</p>
+                ) : (
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis
+                          dataKey="date"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11 }}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(v) => `${v}%`}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#fff", borderRadius: "0.5rem", border: "1px solid #e5e7eb" }}
+                          formatter={(value: number) => [`${Math.round(value)}%`]}
+                        />
+                        <Legend />
+                        {subjectNames.map((name, i) => (
+                          <Line
+                            key={name}
+                            type="monotone"
+                            dataKey={name}
+                            stroke={SUBJECT_COLORS[i % SUBJECT_COLORS.length]}
+                            strokeWidth={2}
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
+                            connectNulls
+                          />
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="all">All ({mockAssessments.length})</TabsTrigger>
-            <TabsTrigger value="graded">Graded ({gradedCount})</TabsTrigger>
-            <TabsTrigger value="pending">
-              Pending
-              {pendingCount > 0 && (
-                <Badge className="ml-1.5 text-xs bg-yellow-500">{pendingCount}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab} className="mt-4">
-            {filteredAssessments.length > 0 ? (
-              <div className="space-y-3">
-                {filteredAssessments.map((assessment) => {
-                  const typeInfo = typeConfig[assessment.type];
-                  const statusInfo = statusConfig[assessment.status];
-                  const TypeIcon = typeInfo.icon;
-                  const scorePercent =
-                    assessment.score !== undefined && assessment.maxScore !== undefined
-                      ? Math.round((assessment.score / assessment.maxScore) * 100)
-                      : null;
-
-                  return (
-                    <Card key={assessment.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-5">
-                        <div className="flex items-start gap-4">
-                          {/* Type icon */}
-                          <div className={`h-12 w-12 rounded-lg flex items-center justify-center flex-shrink-0 ${typeInfo.color}`}>
-                            <TypeIcon className="h-6 w-6" />
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-semibold">{assessment.title}</h3>
-                              <Badge className={`text-xs ${typeInfo.color}`}>{typeInfo.label}</Badge>
-                              <Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge>
-                            </div>
-                            <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
-                              <span>{assessment.studentName}</span>
-                              <span>·</span>
-                              <span>{assessment.subject}</span>
-                              <span>·</span>
-                              <span>{assessment.tutorName}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(assessment.date).toLocaleDateString("en-IN", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })}
-                            </p>
-                            {assessment.remarks && (
-                              <p className="text-sm text-muted-foreground mt-2 bg-gray-50 rounded p-2 italic">
-                                "{assessment.remarks}"
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Score */}
-                          <div className="text-right flex-shrink-0">
-                            {scorePercent !== null ? (
-                              <div>
-                                <div
-                                  className={`text-2xl font-bold ${
-                                    scorePercent >= 80
-                                      ? "text-green-600"
-                                      : scorePercent >= 60
-                                      ? "text-yellow-600"
-                                      : "text-red-600"
-                                  }`}
-                                >
-                                  {assessment.score}/{assessment.maxScore}
-                                </div>
-                                <p className="text-xs text-muted-foreground">{scorePercent}%</p>
-                                {assessment.grade && (
-                                  <Badge
-                                    variant="outline"
-                                    className="mt-1 bg-green-50 text-green-700 border-green-200"
-                                  >
-                                    Grade {assessment.grade}
-                                  </Badge>
-                                )}
-                              </div>
-                            ) : assessment.status === "pending" ? (
-                              <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
-                                Upcoming
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">Report</Badge>
-                            )}
-                          </div>
+            {/* Subject Trend Cards */}
+            {progress && progress.subjects.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {progress.subjects.map((s, i) => (
+                  <Card key={s.subjectId} className="bg-white shadow-sm rounded-xl">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">{s.subjectName}</p>
+                          <p className="text-sm text-gray-500">{s.totalAssessments} assessments</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="text-lg font-semibold">No assessments found</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Assessment results will appear here once your children's tutors submit them.
-                </p>
+                        <div className="flex items-center gap-2">
+                          <TrendIcon trend={s.trend} />
+                          <span className={`text-sm font-medium ${
+                            s.trend === "improving" ? "text-green-600" :
+                            s.trend === "declining" ? "text-red-600" : "text-gray-500"
+                          }`}>
+                            {s.trend.charAt(0).toUpperCase() + s.trend.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-2xl font-bold" style={{ color: SUBJECT_COLORS[i % SUBJECT_COLORS.length] }}>
+                          {Math.round(s.latestPercentage)}%
+                        </span>
+                        <span className="text-xs text-gray-500">latest</span>
+                        <span className="text-sm text-gray-400 ml-auto">avg {Math.round(s.averagePercentage)}%</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+
+            {/* Results Table */}
+            <Card className="bg-white shadow-sm rounded-xl">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">All Results</h3>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-medium text-gray-700">Title</TableHead>
+                        <TableHead className="font-medium text-gray-700">Subject</TableHead>
+                        <TableHead className="font-medium text-gray-700">Score</TableHead>
+                        <TableHead className="font-medium text-gray-700">Percentage</TableHead>
+                        <TableHead className="font-medium text-gray-700">Tutor</TableHead>
+                        <TableHead className="font-medium text-gray-700">Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loadingResults ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                            <Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading...
+                          </TableCell>
+                        </TableRow>
+                      ) : results.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">No results yet</TableCell>
+                        </TableRow>
+                      ) : (
+                        results.map((r) => (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-medium">{r.title}</TableCell>
+                            <TableCell>{r.subject}</TableCell>
+                            <TableCell>{r.score}/{r.maxScore}</TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  r.percentage >= 80 ? "bg-green-100 text-green-800" :
+                                  r.percentage >= 50 ? "bg-amber-100 text-amber-800" :
+                                  "bg-red-100 text-red-800"
+                                }
+                                variant="outline"
+                              >
+                                {Math.round(r.percentage)}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{r.tutorName}</TableCell>
+                            <TableCell>{new Date(r.assessedAt).toLocaleDateString()}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-4">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+                    <span className="text-sm text-gray-500">Page {page} of {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </ParentDashboardLayout>
   );

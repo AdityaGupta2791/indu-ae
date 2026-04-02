@@ -1,59 +1,32 @@
-
 import { useEffect, useState } from "react";
-import {
-  Users,
-  Calendar,
-  Star,
-  DollarSign,
-  Plus,
-  MessageSquare,
-  Download,
-  FileText,
-  Clock,
-  BookOpen,
-  Loader2
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
+import { Users, Calendar, Star, DollarSign, BookOpen, Loader2, Clock, Video } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TutorDashboardLayout from "@/components/TutorDashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useDesignTokens } from "@/hooks/use-design-tokens";
-
-// Import our components
-import MetricCard from "@/components/tutor-dashboard/MetricCard";
-import TeachingProgress from "@/components/tutor-dashboard/TeachingProgress";
-import QuickStats from "@/components/tutor-dashboard/QuickStats";
-import UpcomingSessions from "@/components/tutor-dashboard/UpcomingSessions";
-import RecentActivity from "@/components/tutor-dashboard/RecentActivity";
-import NotificationsList from "@/components/tutor-dashboard/NotificationItem";
-import {
-  upcomingSessions,
-  recentActivities,
-  notifications,
-  quickStats,
-  teachingProgress
-} from "@/components/tutor-dashboard/mock-data";
-import { tutorService, TutorDashboardSummary } from "@/services/tutor.service";
+import { Badge } from "@/components/ui/badge";
+import { dashboardService, type TutorDashboardData } from "@/services/dashboard.service";
+import { displayTime } from "@/lib/utils";
 
 const TutorDashboard = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const { colors, buttonStyles } = useDesignTokens();
-  const [dashboard, setDashboard] = useState<TutorDashboardSummary | null>(null);
+  const [data, setData] = useState<TutorDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const tz = user?.timezone || "Asia/Dubai";
 
   useEffect(() => {
     document.title = "Tutor Dashboard | Indu AE";
-    tutorService.getDashboard()
-      .then(setDashboard)
-      .catch(() => toast({ title: "Error", description: "Failed to load dashboard data", variant: "destructive" }))
+    dashboardService.getTutorDashboard()
+      .then(setData)
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   if (!user) return null;
-  
-  // Get time of day for greeting
+
+  const formatInr = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN")}`;
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -61,172 +34,136 @@ const TutorDashboard = () => {
     return "Good evening";
   };
 
-  const handleQuickAction = (action: string) => {
-    toast({
-      title: "Action initiated",
-      description: `You clicked on ${action}`,
-      duration: 4000,
-    });
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
   };
+
+  const activityIcons: Record<string, string> = { enrollment: "📚", review: "⭐", payout: "💰" };
 
   return (
     <TutorDashboardLayout>
-      <div className="flex flex-col gap-8 pb-8 max-w-7xl mx-auto">
-        {/* Welcome banner */}
-        <div className="bg-purple-100 rounded-md shadow-sm p-6 animate-fade-in">
-          <h1 className="text-2xl font-semibold leading-tight text-purple-900">
-            {getGreeting()}, {user.fullName?.split(' ')[0] || 'Tutor'}!
+      <div className="flex flex-col gap-6 pb-8 max-w-7xl mx-auto">
+        {/* Welcome */}
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6">
+          <h1 className="text-2xl font-semibold text-purple-800">
+            {getGreeting()}, {user.fullName?.split(" ")[0] || "Tutor"}!
           </h1>
-          <p className="text-purple-800 mt-2 text-base">
-            Here's what's happening with your teaching journey
-          </p>
-          <div className="flex flex-wrap gap-4 mt-6">
-            <Button 
-              className="bg-white text-purple-700 hover:bg-gray-100 transition-all border border-purple-200 hover:scale-[0.98] active:scale-[0.97]"
-              onClick={() => handleQuickAction("Create New Class")}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Create New Class
-            </Button>
-          </div>
+          <p className="text-purple-700 mt-2">Here's your teaching overview for today.</p>
         </div>
-        
-        {/* Key metrics - using 12 column grid */}
+
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
-            <span className="ml-2 text-muted-foreground">Loading dashboard...</span>
-          </div>
-        ) : (
+          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        ) : data ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <MetricCard
-                title="Total Students"
-                value={String(dashboard?.totalStudents ?? 0)}
-                description="Currently Enrolled"
-                icon={<Users className="h-4 w-4 text-white" />}
-                iconBg="bg-purple-700"
-                change=""
-                period=""
-                trend="neutral"
-              />
-              <MetricCard
-                title="Upcoming Sessions"
-                value={String(dashboard?.upcomingSessions ?? 0)}
-                description="Scheduled"
-                icon={<Calendar className="h-4 w-4 text-white" />}
-                iconBg="bg-teal-500"
-                change=""
-                period=""
-                trend="neutral"
-              />
-              <MetricCard
-                title="Completed Sessions"
-                value={String(dashboard?.completedSessions ?? 0)}
-                description="All Time"
-                icon={<FileText className="h-4 w-4 text-white" />}
-                iconBg="bg-blue-700"
-                change=""
-                period=""
-                trend="neutral"
-              />
+            {/* Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { title: "Active Students", value: String(data.stats.totalStudents), sub: "Currently enrolled", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
+                { title: "Upcoming Sessions", value: String(data.stats.upcomingSessions), sub: "Scheduled ahead", icon: Calendar, color: "text-green-600", bg: "bg-green-100" },
+                { title: "Sessions Completed", value: String(data.stats.completedSessions), sub: "Total delivered", icon: BookOpen, color: "text-purple-600", bg: "bg-purple-100" },
+                { title: "Total Earnings", value: formatInr(data.stats.totalEarnings), sub: `Unpaid: ${formatInr(data.earningsSummary.unpaidInPaise)}`, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-100" },
+                { title: "Courses", value: String(data.stats.coursesCount), sub: "Subjects you teach", icon: BookOpen, color: "text-orange-600", bg: "bg-orange-100" },
+                { title: "Average Rating", value: data.stats.averageRating ? `${data.stats.averageRating} / 5` : "—", sub: "From student reviews", icon: Star, color: "text-amber-600", bg: "bg-amber-100" },
+              ].map((stat, i) => {
+                const Icon = stat.icon;
+                return (
+                  <Card key={i} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">{stat.title}</p>
+                          <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+                        </div>
+                        <div className={`${stat.bg} p-2.5 rounded-lg`}><Icon className={`h-5 w-5 ${stat.color}`} /></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <MetricCard
-                title="Total Earnings"
-                value={`AED ${(dashboard?.totalEarnings ?? 0).toLocaleString()}`}
-                description="All Time"
-                icon={<DollarSign className="h-4 w-4 text-white" />}
-                iconBg="bg-cyan-500"
-                change=""
-                period=""
-                trend="neutral"
-              />
-              <MetricCard
-                title="Courses"
-                value={String(dashboard?.coursesCount ?? 0)}
-                description="Currently Teaching"
-                icon={<BookOpen className="h-4 w-4 text-white" />}
-                iconBg="bg-pink-500"
-                change=""
-                period=""
-                trend="neutral"
-              />
-              <MetricCard
-                title="Average Rating"
-                value={dashboard?.averageRating != null ? dashboard.averageRating.toFixed(1) : "N/A"}
-                description={dashboard?.averageRating != null ? "From student reviews" : "No reviews yet"}
-                icon={<Star className="h-4 w-4 text-white" />}
-                iconBg="bg-amber-500"
-                change=""
-                period=""
-                trend="neutral"
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Upcoming Sessions */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-base">Upcoming Sessions</CardTitle>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/tutor-dashboard/enrollments" className="text-xs text-indigo-600">View All</Link>
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {data.upcomingSessions.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.upcomingSessions.map((s, i) => (
+                        <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-indigo-100 flex items-center justify-center">
+                              <BookOpen className="h-4 w-4 text-indigo-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{s.subject}</p>
+                              <p className="text-xs text-muted-foreground">{s.student} · {s.type}</p>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-2">
+                            <div>
+                              <p className="text-sm font-medium">
+                                {new Date(s.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{displayTime(s.time, tz)}</p>
+                            </div>
+                            {s.zoomLink && (
+                              <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                                <Button variant="outline" size="sm" className="text-xs"><Video className="h-3 w-3" /></Button>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">No upcoming sessions.</div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.recentActivity.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.recentActivity.map((a, i) => (
+                        <div key={i} className="flex items-start gap-3 py-2 border-b last:border-0">
+                          <span className="text-lg">{activityIcons[a.type] || "🔔"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-700">{a.message}</p>
+                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3 w-3" /> {timeAgo(a.time)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">No recent activity.</div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">Failed to load dashboard data.</div>
         )}
-        
-        {/* Teaching progress - using 12 column grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          <div className="md:col-span-2">
-            <TeachingProgress chartData={teachingProgress} />
-          </div>
-          <div className="md:col-span-1">
-            <QuickStats stats={quickStats} />
-          </div>
-        </div>
-        
-        {/* Upcoming sessions and Notifications tabs */}
-        <Tabs defaultValue="upcoming" className="w-full">
-          <TabsList className="bg-[#F5F7FA] mb-6 h-auto">
-            <TabsTrigger 
-              value="upcoming" 
-              className="data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-sm py-2 text-sm"
-            >
-              Upcoming Sessions
-            </TabsTrigger>
-            <TabsTrigger 
-              value="recent" 
-              className="data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-sm py-2 text-sm"
-            >
-              Recent Activity
-            </TabsTrigger>
-            <TabsTrigger 
-              value="notifications" 
-              className="data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-sm py-2 text-sm"
-            >
-              Notifications
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upcoming" className="mt-0">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-purple-800">Upcoming Sessions</h2>
-              <Button 
-                className="bg-purple-700 hover:bg-purple-800 text-white transition-all hover:scale-[0.98] active:scale-[0.97]"
-                onClick={() => handleQuickAction("Create New Session")}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Create New Session
-              </Button>
-            </div>
-            <UpcomingSessions sessions={upcomingSessions} maxVisible={6} />
-          </TabsContent>
-          
-          <TabsContent value="recent" className="mt-0">
-            <RecentActivity activities={recentActivities} maxVisible={8} />
-          </TabsContent>
-          
-          <TabsContent value="notifications" className="mt-0">
-            <NotificationsList notifications={notifications} maxVisible={8} />
-          </TabsContent>
-        </Tabs>
-
-        {/* Footer */}
-        <footer className="border-t pt-6 mt-4 text-center text-sm text-muted-foreground space-x-4">
-          <a href="#" className="hover:text-purple-700 transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-purple-700 transition-colors">Terms of Use</a>
-          <a href="#" className="hover:text-purple-700 transition-colors">Contact Support</a>
-        </footer>
       </div>
     </TutorDashboardLayout>
   );

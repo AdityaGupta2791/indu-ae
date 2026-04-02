@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import TutorDashboardLayout from "@/components/TutorDashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Users, Loader2, Calendar, Clock, CreditCard, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { displayTimeRange } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { tutorBatchService, type Batch } from "@/services/batch.service";
+import { tutorBatchService, type Batch, type BatchStatus } from "@/services/batch.service";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const statusColors: Record<string, string> = {
@@ -22,6 +23,7 @@ const TutorBatches = () => {
   const tz = user?.timezone || "Asia/Dubai";
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("");
 
   const fetchBatches = useCallback(async () => {
     setLoading(true);
@@ -52,9 +54,33 @@ const TutorBatches = () => {
           <p className="text-muted-foreground text-sm mt-1">Group classes you're teaching</p>
         </div>
 
+        {/* Status filter */}
+        <div className="flex gap-2 mb-6">
+          {[
+            { value: "", label: "All" },
+            { value: "OPEN", label: "Open" },
+            { value: "ACTIVE", label: "Active" },
+            { value: "FULL", label: "Full" },
+            { value: "COMPLETED", label: "Completed" },
+            { value: "CANCELLED", label: "Cancelled" },
+          ].map((f) => (
+            <Button
+              key={f.value}
+              variant={statusFilter === f.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(f.value)}
+              className={statusFilter === f.value ? "bg-gray-800 hover:bg-gray-900" : ""}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-        ) : batches.length === 0 ? (
+        ) : (() => {
+          const filtered = statusFilter ? batches.filter((b) => b.status === statusFilter) : batches;
+          return filtered.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Users className="h-12 w-12 text-muted-foreground mb-3" />
@@ -64,7 +90,7 @@ const TutorBatches = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {batches.map((batch) => (
+            {filtered.map((batch) => (
               <Link key={batch.id} to={`/tutor-dashboard/batches/${batch.id}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-0.5 cursor-pointer h-full">
                   <div className={`h-24 bg-gradient-to-br ${getSubjectColor(batch.subject?.name || "")} flex items-center justify-center relative`}>
@@ -91,7 +117,8 @@ const TutorBatches = () => {
               </Link>
             ))}
           </div>
-        )}
+        );
+        })()}
       </div>
     </TutorDashboardLayout>
   );

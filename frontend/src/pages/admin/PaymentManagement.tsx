@@ -55,7 +55,7 @@ type Tab = "packages" | "wallets" | "payments";
 
 const PaymentManagement = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<Tab>("packages");
+  const [activeTab, setActiveTab] = useState<Tab>("payments");
 
   // ------- Credit Packages -------
   const [packages, setPackages] = useState<CreditPackage[]>([]);
@@ -301,12 +301,12 @@ const PaymentManagement = () => {
       {/* Tabs */}
       <div className="flex gap-2">
         <Button
-          variant={activeTab === "packages" ? "default" : "outline"}
-          onClick={() => setActiveTab("packages")}
-          className={activeTab === "packages" ? "bg-gray-800 hover:bg-gray-900" : ""}
+          variant={activeTab === "payments" ? "default" : "outline"}
+          onClick={() => setActiveTab("payments")}
+          className={activeTab === "payments" ? "bg-gray-800 hover:bg-gray-900" : ""}
         >
-          <Package className="h-4 w-4 mr-2" />
-          Credit Packages
+          <CreditCard className="h-4 w-4 mr-2" />
+          Payments
         </Button>
         <Button
           variant={activeTab === "wallets" ? "default" : "outline"}
@@ -317,12 +317,12 @@ const PaymentManagement = () => {
           Parent Wallets
         </Button>
         <Button
-          variant={activeTab === "payments" ? "default" : "outline"}
-          onClick={() => setActiveTab("payments")}
-          className={activeTab === "payments" ? "bg-gray-800 hover:bg-gray-900" : ""}
+          variant={activeTab === "packages" ? "default" : "outline"}
+          onClick={() => setActiveTab("packages")}
+          className={activeTab === "packages" ? "bg-gray-800 hover:bg-gray-900" : ""}
         >
-          <CreditCard className="h-4 w-4 mr-2" />
-          Payments
+          <Package className="h-4 w-4 mr-2" />
+          Credit Packages
         </Button>
       </div>
 

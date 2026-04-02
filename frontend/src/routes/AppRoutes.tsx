@@ -126,6 +126,9 @@ import AdminDemoBookings from "@/pages/admin/AdminDemoBookings";
 import AdminApplications from "@/pages/admin/AdminApplications";
 import AdminEnrollments from "@/pages/admin/AdminEnrollments";
 import AdminBatches from "@/pages/admin/AdminBatches";
+import AdminEarnings from "@/pages/admin/AdminEarnings";
+import AdminReviews from "@/pages/admin/AdminReviews";
+import AdminAssessments from "@/pages/admin/AdminAssessments";
 
 const AppRoutes = () => {
   return (
@@ -337,6 +340,9 @@ const AppRoutes = () => {
         <Route path="batches" element={<AdminBatches />} />
         <Route path="applications" element={<AdminApplications />} />
         <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="earnings" element={<AdminEarnings />} />
+        <Route path="reviews" element={<AdminReviews />} />
+        <Route path="assessment-results" element={<AdminAssessments />} />
       </Route>
       
       {/* M13: CMS Public Pages */}

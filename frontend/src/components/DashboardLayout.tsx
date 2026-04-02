@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface DashboardLayoutProps {
@@ -111,34 +112,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           )}
           
           <div className="ml-auto flex items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"></span>
-                  <span className="sr-only">Notifications</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="max-h-80 overflow-auto">
-                  {notifications.map((notification) => (
-                    <DropdownMenuItem key={notification.id} className="cursor-pointer">
-                      <div className="flex flex-col gap-1">
-                        <p className="font-medium">{notification.title}</p>
-                        <p className="text-xs text-muted-foreground">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer justify-center font-medium">
-                  View all notifications
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NotificationBell />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

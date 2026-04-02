@@ -1,201 +1,243 @@
-
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  Users, BookOpen, DollarSign, TrendingUp, ArrowUpRight, ArrowDownRight,
-  Download, Calendar,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Users, BookOpen, DollarSign, Star, Loader2,
 } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+  BarChart, Bar,
+} from "recharts";
+import { analyticsService, type DashboardStats } from "@/services/analytics.service";
+
+const PIE_COLORS = ["#6366F1", "#3B82F6", "#10B981", "#F59E0B"];
+const BAR_COLORS = ["#8B5CF6", "#6366F1", "#3B82F6", "#10B981", "#F59E0B"];
 
 const Analytics = () => {
-  const kpiCards = [
-    { title: "Total Revenue", value: "₹12,45,600", change: "+18.2%", up: true, icon: DollarSign, color: "text-green-600", bg: "bg-green-50" },
-    { title: "Active Users", value: "8,432", change: "+12.5%", up: true, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Classes Completed", value: "3,217", change: "+9.1%", up: true, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50" },
-    { title: "Conversion Rate", value: "24.8%", change: "-1.3%", up: false, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50" },
-  ];
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const monthlyData = [
-    { month: "Oct", users: 5200, revenue: 820000, classes: 1890 },
-    { month: "Nov", users: 6100, revenue: 945000, classes: 2340 },
-    { month: "Dec", users: 6800, revenue: 1023000, classes: 2560 },
-    { month: "Jan", users: 7400, revenue: 1102000, classes: 2780 },
-    { month: "Feb", users: 8000, revenue: 1180000, classes: 3010 },
-    { month: "Mar", users: 8432, revenue: 1245600, classes: 3217 },
-  ];
+  useEffect(() => {
+    analyticsService.getDashboardStats()
+      .then(setStats)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  const topSubjects = [
-    { name: "Mathematics", students: 2340, revenue: "₹3,45,000", growth: "+15%" },
-    { name: "Science", students: 1890, revenue: "₹2,78,000", growth: "+12%" },
-    { name: "English", students: 1560, revenue: "₹2,12,000", growth: "+8%" },
-    { name: "Coding & Robotics", students: 1230, revenue: "₹1,98,000", growth: "+22%" },
-    { name: "Art & Design", students: 980, revenue: "₹1,45,000", growth: "+18%" },
-  ];
+  const formatAed = (fils: number) => `AED ${(fils / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+  const formatInr = (paise: number) => `₹${(paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 0 })}`;
 
-  const topTutors = [
-    { name: "Priya Sharma", subject: "Mathematics", students: 145, rating: 4.9, earnings: "₹1,23,000" },
-    { name: "Rajesh Kumar", subject: "Science", students: 132, rating: 4.8, earnings: "₹1,08,000" },
-    { name: "Anita Desai", subject: "English", students: 118, rating: 4.9, earnings: "₹96,000" },
-    { name: "Vikram Singh", subject: "Coding", students: 105, rating: 4.7, earnings: "₹89,000" },
-    { name: "Meera Patel", subject: "Art", students: 98, rating: 4.8, earnings: "₹78,000" },
-  ];
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-6 text-center py-20 text-muted-foreground">Failed to load analytics.</div>
+    );
+  }
+
+  // Prepare chart data
+  const monthlyData = stats.monthlyRevenue.map((m) => ({
+    month: new Date(m.month + "-01").toLocaleDateString("en-US", { month: "short" }),
+    revenue: m.amount / 100,
+  }));
 
   const userBreakdown = [
-    { role: "Students", count: 5200, pct: 42, color: "bg-blue-500" },
-    { role: "Parents", count: 4100, pct: 33, color: "bg-indigo-500" },
-    { role: "Tutors", count: 2400, pct: 19, color: "bg-purple-500" },
-    { role: "Consultants", count: 732, pct: 6, color: "bg-teal-500" },
-  ];
-
-  const maxRevenue = Math.max(...monthlyData.map(d => d.revenue));
+    { name: "Parents", value: stats.users.parents },
+    { name: "Tutors", value: stats.users.tutors },
+    { name: "Consultants", value: stats.users.consultants },
+    { name: "Admins", value: stats.users.admins },
+  ].filter((u) => u.value > 0);
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Analytics & Reporting</h1>
-          <p className="text-muted-foreground text-sm mt-1">Platform performance overview and insights.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="h-4 w-4 mr-2" />
-            Last 6 Months
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">Analytics & Reports</h1>
+        <p className="text-muted-foreground text-sm mt-1">Platform performance metrics and insights</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <Card key={kpi.title} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className={`p-2 rounded-lg ${kpi.bg}`}>
-                    <Icon className={`h-5 w-5 ${kpi.color}`} />
-                  </div>
-                  <span className={`text-xs font-medium flex items-center gap-1 ${kpi.up ? "text-green-600" : "text-red-500"}`}>
-                    {kpi.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                    {kpi.change}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-800">{kpi.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{kpi.title}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Revenue Chart (bar chart using divs) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Revenue Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-end gap-4 h-48">
-            {monthlyData.map((d) => (
-              <div key={d.month} className="flex-1 flex flex-col items-center gap-2">
-                <span className="text-xs font-medium text-gray-800">
-                  ₹{(d.revenue / 100000).toFixed(1)}L
-                </span>
-                <div
-                  className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md transition-all"
-                  style={{ height: `${(d.revenue / maxRevenue) * 100}%` }}
-                />
-                <span className="text-xs text-muted-foreground">{d.month}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* User Breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>User Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {userBreakdown.map((u) => (
-              <div key={u.role}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">{u.role}</span>
-                  <span className="text-sm text-muted-foreground">{u.count.toLocaleString()} ({u.pct}%)</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div className={`${u.color} h-2 rounded-full transition-all`} style={{ width: `${u.pct}%` }} />
-                </div>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-bold mt-1">{formatAed(stats.revenue.totalInFils)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats.revenue.totalPayments} payments</p>
               </div>
-            ))}
+              <DollarSign className="h-8 w-8 text-purple-500 opacity-50" />
+            </div>
           </CardContent>
         </Card>
-
-        {/* Top Subjects */}
         <Card>
-          <CardHeader>
-            <CardTitle>Top Subjects by Enrollment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {topSubjects.map((s, i) => (
-                <div key={s.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-muted-foreground w-5">#{i + 1}</span>
-                    <div>
-                      <p className="text-sm font-medium">{s.name}</p>
-                      <p className="text-xs text-muted-foreground">{s.students.toLocaleString()} students</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{s.revenue}</p>
-                    <p className="text-xs text-green-600">{s.growth}</p>
-                  </div>
-                </div>
-              ))}
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold mt-1">{stats.users.total.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats.users.parents} parents · {stats.users.tutors} tutors</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Sessions Completed</p>
+                <p className="text-2xl font-bold mt-1">{stats.sessions.totalCompleted.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">{stats.sessions.thisMonth} this month</p>
+              </div>
+              <BookOpen className="h-8 w-8 text-green-500 opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Avg Rating</p>
+                <p className="text-2xl font-bold mt-1">{stats.reviews.averageRating || "—"} <span className="text-sm font-normal text-muted-foreground">/ 5</span></p>
+                <p className="text-xs text-muted-foreground mt-1">{stats.reviews.total} reviews</p>
+              </div>
+              <Star className="h-8 w-8 text-amber-500 opacity-50" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Top Tutors */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Performing Tutors</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="pb-3 text-sm font-medium text-muted-foreground">Tutor</th>
-                  <th className="pb-3 text-sm font-medium text-muted-foreground">Subject</th>
-                  <th className="pb-3 text-sm font-medium text-muted-foreground">Students</th>
-                  <th className="pb-3 text-sm font-medium text-muted-foreground">Rating</th>
-                  <th className="pb-3 text-sm font-medium text-muted-foreground">Earnings</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {topTutors.map((t) => (
-                  <tr key={t.name} className="hover:bg-gray-50">
-                    <td className="py-3 text-sm font-medium">{t.name}</td>
-                    <td className="py-3 text-sm text-muted-foreground">{t.subject}</td>
-                    <td className="py-3 text-sm">{t.students}</td>
-                    <td className="py-3 text-sm">
-                      <span className="inline-flex items-center gap-1 text-yellow-600">⭐ {t.rating}</span>
-                    </td>
-                    <td className="py-3 text-sm font-medium">{t.earnings}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Revenue Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Monthly Revenue (AED)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {monthlyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v: number) => [`AED ${v.toFixed(2)}`, "Revenue"]} />
+                  <Line type="monotone" dataKey="revenue" stroke="#6366F1" strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground text-sm">No revenue data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* User Breakdown Pie */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">User Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {userBreakdown.length > 0 ? (
+              <div className="flex items-center gap-6">
+                <ResponsiveContainer width="50%" height={220}>
+                  <PieChart>
+                    <Pie data={userBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={false}>
+                      {userBreakdown.map((_, i) => (
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-2">
+                  {userBreakdown.map((u, i) => (
+                    <div key={u.name} className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      <span className="text-sm text-gray-700">{u.name}: <strong>{u.value}</strong></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground text-sm">No user data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Subjects Bar Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top Subjects by Enrollments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.topSubjects.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={stats.topSubjects} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={100} />
+                  <Tooltip />
+                  <Bar dataKey="enrollments" fill="#6366F1" radius={[0, 4, 4, 0]}>
+                    {stats.topSubjects.map((_, i) => (
+                      <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground text-sm">No enrollment data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Tutors Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top Performing Tutors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.topTutors.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tutor</TableHead>
+                    <TableHead>Sessions</TableHead>
+                    <TableHead>Earnings</TableHead>
+                    <TableHead>Rating</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.topTutors.map((tutor, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium text-gray-800">{tutor.name}</TableCell>
+                      <TableCell>{tutor.sessions}</TableCell>
+                      <TableCell>{formatInr(tutor.earned)}</TableCell>
+                      <TableCell>
+                        <Badge className={tutor.rating >= 4 ? "bg-green-100 text-green-700" : tutor.rating >= 3 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-700"}>
+                          {tutor.rating ? `${tutor.rating} ★` : "—"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground text-sm">No tutor data yet.</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

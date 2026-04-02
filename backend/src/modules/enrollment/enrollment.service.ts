@@ -10,15 +10,16 @@ import {
   CancelSessionDTO,
   ScheduleSlot,
 } from './enrollment.types';
+import { EarningService } from '../earning/earning.service';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 // Standard include for enrollment queries
 const enrollmentInclude = {
   student: { select: { id: true, firstName: true, lastName: true, gradeId: true, grade: { select: { id: true, name: true } } } },
-  parent: { include: { user: { select: { timezone: true } } } },
+  parent: { include: { user: { select: { id: true, email: true, timezone: true } } } },
   subject: { select: { id: true, name: true } },
-  tutor: { include: { user: { select: { email: true, timezone: true } } } },
+  tutor: { include: { user: { select: { id: true, email: true, timezone: true } } } },
 } as const;
 
 const sessionInclude = {
@@ -26,6 +27,8 @@ const sessionInclude = {
 };
 
 export class EnrollmentService {
+  private earningService = new EarningService();
+
   // ==========================================
   // HELPERS
   // ==========================================
@@ -537,6 +540,33 @@ export class EnrollmentService {
     } catch (err) {
       console.error('Zoom meeting creation failed (non-blocking):', err);
       // Enrollment still works — tutor can add link manually
+    }
+
+    // Notify parent + tutor (non-blocking)
+    try {
+      const { NotificationService } = await import('../notification/notification.service');
+      const { enrollmentCreatedParent, enrollmentCreatedTutor } = await import('../notification/templates/event-templates');
+      const ns = new NotificationService();
+      const parentTemplate = enrollmentCreatedParent(
+        `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+        enrollment.subject.name,
+        `${enrollment.tutor.firstName} ${enrollment.tutor.lastName}`
+      );
+      const tutorTemplate = enrollmentCreatedTutor(
+        `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+        enrollment.subject.name,
+        `${enrollment.parent.firstName} ${enrollment.parent.lastName}`
+      );
+      const parentUserId = enrollment.parent.userId;
+      const parentEmail = enrollment.parent.user?.email || '';
+      const tutorUserId = enrollment.tutor.userId;
+      const tutorEmail = enrollment.tutor.user?.email || '';
+      await ns.sendBulk([
+        { userId: parentUserId, userEmail: parentEmail, type: 'ENROLLMENT_CREATED', ...parentTemplate, emailHtml: parentTemplate.html },
+        { userId: tutorUserId, userEmail: tutorEmail, type: 'ENROLLMENT_CREATED', ...tutorTemplate, emailHtml: tutorTemplate.html },
+      ]);
+    } catch (err) {
+      console.error('Enrollment notification failed (non-blocking):', err);
     }
 
     return { ...enrollment, sessionsGenerated };
@@ -1300,6 +1330,14 @@ export class EnrollmentService {
           where: { id: session.id },
           data: { status: 'COMPLETED' },
         });
+
+        // M16: Auto-create tutor earning for completed session
+        try {
+          await this.earningService.createEarningForSession(session.id);
+        } catch (err) {
+          console.error(`[CRON] Failed to create earning for session ${session.id}:`, err);
+        }
+
         completed++;
       }
     }
