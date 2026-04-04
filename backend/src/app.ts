@@ -25,6 +25,7 @@ import batchRoutes from './modules/batch/batch.routes';
 import notificationRoutes from './modules/notification/notification.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import swaggerRouter from './config/swagger';
 
 const app = express();
 
@@ -46,6 +47,9 @@ app.use(cookieParser());
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// API Documentation
+app.use('/api/docs', swaggerRouter);
 
 // API Routes
 const apiPrefix = `/api/${env.API_VERSION}`;

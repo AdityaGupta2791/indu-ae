@@ -30,10 +30,9 @@ const NotFound = () => {
   ];
 
   useEffect(() => {
-    console.log(
-      "Page under development accessed:",
-      location.pathname
-    );
+    if (import.meta.env.DEV) {
+      console.log("Page under development accessed:", location.pathname);
+    }
   }, [location.pathname]);
 
   return (

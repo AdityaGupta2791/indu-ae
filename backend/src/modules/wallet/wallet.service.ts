@@ -2,6 +2,7 @@ import { CreditTransactionType } from '@prisma/client';
 import prisma from '../../config/database';
 import { ApiError } from '../../shared/utils/apiError';
 import { parsePagination, buildPaginationMeta } from '../../shared/utils/pagination';
+import { computeBalance } from '../../shared/utils/credit';
 import {
   CreateCreditPackageDTO,
   UpdateCreditPackageDTO,
@@ -20,30 +21,6 @@ export class WalletService {
     return profile;
   }
 
-  private async computeBalance(parentId: string): Promise<number> {
-    const result = await prisma.creditTransaction.aggregate({
-      where: { parentId },
-      _sum: { amount: true },
-    });
-
-    // PURCHASE and ADMIN_ADJUSTMENT add credits, DEDUCTION removes
-    // Since we store amount as positive always, we need to compute direction
-    const transactions = await prisma.creditTransaction.findMany({
-      where: { parentId },
-      select: { type: true, amount: true },
-    });
-
-    let balance = 0;
-    for (const tx of transactions) {
-      if (tx.type === 'DEDUCTION') {
-        balance -= tx.amount;
-      } else {
-        balance += tx.amount;
-      }
-    }
-
-    return balance;
-  }
 
   // ==========================================
   // PARENT: WALLET
@@ -51,7 +28,7 @@ export class WalletService {
 
   async getBalance(userId: string) {
     const profile = await this.getParentProfileByUserId(userId);
-    const balance = await this.computeBalance(profile.id);
+    const balance = await computeBalance(profile.id);
 
     // Also compute totals
     const transactions = await prisma.creditTransaction.findMany({
@@ -269,7 +246,7 @@ export class WalletService {
 
     // If deducting, check balance
     if (data.amount < 0) {
-      const balance = await this.computeBalance(parentProfileId);
+      const balance = await computeBalance(parentProfileId);
       if (balance < amount) {
         throw ApiError.badRequest('INSUFFICIENT_CREDITS', `Parent only has ${balance} credits. Cannot deduct ${amount}.`);
       }
@@ -284,7 +261,7 @@ export class WalletService {
       },
     });
 
-    const newBalance = await this.computeBalance(parentProfileId);
+    const newBalance = await computeBalance(parentProfileId);
 
     // Auto-resume paused enrollments when credits are added
     if (data.amount > 0) {

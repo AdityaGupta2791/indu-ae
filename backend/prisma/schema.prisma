@@ -8,6 +8,22 @@ datasource db {
 }
 
 // ============================================
+// DELETION STRATEGY
+// ============================================
+// Soft delete (deletedAt): User, Student, TutorProfile, Course, CreditPackage
+//   → Entities that may be referenced historically but should be hidden from active use.
+//
+// Status-based lifecycle: Enrollment, Batch, Payment, Recording
+//   → These go through defined states (ACTIVE→CANCELLED, OPEN→COMPLETED, etc.)
+//     and are never truly deleted — they remain as historical records.
+//
+// Hard delete: CourseMaterial, Token, AdminPermission, Notification
+//   → Ephemeral or replaceable data. Cascade-deleted when parent entity is removed.
+//
+// Immutable ledger: CreditTransaction
+//   → Append-only audit trail. No updates, no deletes.
+
+// ============================================
 // ENUMS
 // ============================================
 

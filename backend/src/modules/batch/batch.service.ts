@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client';
 import prisma from '../../config/database';
 import { ApiError } from '../../shared/utils/apiError';
 import { parsePagination, buildPaginationMeta } from '../../shared/utils/pagination';
+import { computeBalance } from '../../shared/utils/credit';
+import { addMinutesToTime, formatDateUTC } from '../../shared/utils/time';
 import { CreateBatchDTO, UpdateBatchDTO, JoinBatchDTO, BatchQueryDTO } from './batch.types';
 
 const batchInclude = {
@@ -21,29 +23,6 @@ export class BatchService {
   // ==========================================
   // HELPERS
   // ==========================================
-
-  private addMinutesToTime(time: string, minutes: number): string {
-    const [h, m] = time.split(':').map(Number);
-    const total = h * 60 + m + minutes;
-    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-  }
-
-  private formatDate(date: Date): string {
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-  }
-
-  private async computeBalance(parentId: string): Promise<number> {
-    const transactions = await prisma.creditTransaction.findMany({
-      where: { parentId },
-      select: { type: true, amount: true },
-    });
-    let balance = 0;
-    for (const tx of transactions) {
-      if (tx.type === 'DEDUCTION') balance -= tx.amount;
-      else balance += tx.amount;
-    }
-    return balance;
-  }
 
   private async getActiveStudentCount(batchId: string): Promise<number> {
     return prisma.batchStudent.count({ where: { batchId, isActive: true } });
@@ -313,7 +292,7 @@ export class BatchService {
 
     // Credit check: at least 4 sessions' worth
     const minCredits = batch.creditsPerSession * 4;
-    const balance = await this.computeBalance(parent.id);
+    const balance = await computeBalance(parent.id);
     if (balance < minCredits) {
       throw ApiError.badRequest('INSUFFICIENT_CREDITS', `Need at least ${minCredits} credits to join. Current balance: ${balance}`);
     }
@@ -519,7 +498,7 @@ export class BatchService {
     for (const slot of schedule) dayTimeMap.set(slot.dayOfWeek, slot.startTime);
 
     const today = new Date();
-    const todayStr = this.formatDate(today);
+    const todayStr = formatDateUTC(today);
     const windowEnd = new Date(today);
     windowEnd.setDate(windowEnd.getDate() + 7);
 
@@ -533,7 +512,7 @@ export class BatchService {
       where: { batchId, scheduledDate: { gte: startFrom, lte: windowEnd } },
       select: { scheduledDate: true },
     });
-    const existingDates = new Set(existing.map((s) => this.formatDate(s.scheduledDate)));
+    const existingDates = new Set(existing.map((s) => formatDateUTC(s.scheduledDate)));
 
     let sessionsCreated = 0;
     let lastDate = batch.lastGeneratedDate;
@@ -541,11 +520,11 @@ export class BatchService {
 
     while (currentDate <= windowEnd) {
       const dayOfWeek = currentDate.getDay();
-      const dateStr = this.formatDate(currentDate);
+      const dateStr = formatDateUTC(currentDate);
       const slotTime = dayTimeMap.get(dayOfWeek);
 
       if (slotTime && !existingDates.has(dateStr)) {
-        const endTime = this.addMinutesToTime(slotTime, batch.duration);
+        const endTime = addMinutesToTime(slotTime, batch.duration);
 
         // Skip if today's slot already passed
         if (dateStr === todayStr) {
@@ -571,7 +550,7 @@ export class BatchService {
 
           // Deduct credits for each active student
           for (const bs of batch.students) {
-            const balance = await this.computeBalance(bs.parentId);
+            const balance = await computeBalance(bs.parentId);
             if (balance >= batch.creditsPerSession) {
               const bsc = await prisma.batchSessionCredit.create({
                 data: {
@@ -637,7 +616,7 @@ export class BatchService {
 
     let completed = 0;
     for (const session of sessions) {
-      const dateStr = this.formatDate(session.scheduledDate);
+      const dateStr = formatDateUTC(session.scheduledDate);
       const endParts = session.scheduledEnd.split(':').map(Number);
       const sessionEnd = new Date(dateStr + 'T' + session.scheduledEnd + ':00Z');
       if (now > sessionEnd) {
@@ -680,7 +659,7 @@ export class BatchService {
               parentId: credit.parentId,
               type: 'ADMIN_ADJUSTMENT',
               amount: credit.creditsCharged,
-              description: `Refund (batch cancelled): ${this.formatDate(session.scheduledDate)}`,
+              description: `Refund (batch cancelled): ${formatDateUTC(session.scheduledDate)}`,
             },
           });
         }

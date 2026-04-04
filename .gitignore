@@ -42,6 +42,12 @@ test-*.js
 # Prisma generated client (regenerated on install)
 backend/prisma/generated/
 
+# Claude Code
+.claude/
+
+# Test coverage
+coverage/
+
 # Misc
 *.local
 *.tsbuildinfo

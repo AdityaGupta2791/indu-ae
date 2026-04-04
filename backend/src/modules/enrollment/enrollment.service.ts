@@ -3,6 +3,8 @@ import prisma from '../../config/database';
 import { ApiError } from '../../shared/utils/apiError';
 import { parsePagination, buildPaginationMeta } from '../../shared/utils/pagination';
 import { convertTime, shiftDay, localToUtc, getUtcOffsetMinutes } from '../../shared/utils/timezone';
+import { computeBalance } from '../../shared/utils/credit';
+import { addMinutesToTime, formatDateUTC } from '../../shared/utils/time';
 import {
   CreateEnrollmentDTO,
   EnrollmentQueryDTO,
@@ -33,22 +35,6 @@ export class EnrollmentService {
   // HELPERS
   // ==========================================
 
-  private async computeBalance(parentId: string): Promise<number> {
-    const transactions = await prisma.creditTransaction.findMany({
-      where: { parentId },
-      select: { type: true, amount: true },
-    });
-    let balance = 0;
-    for (const tx of transactions) {
-      if (tx.type === 'DEDUCTION') {
-        balance -= tx.amount;
-      } else {
-        balance += tx.amount;
-      }
-    }
-    return balance;
-  }
-
   private async deleteZoomMeeting(enrollment: { zoomMeetingId: bigint | null }) {
     if (!enrollment.zoomMeetingId) return;
     try {
@@ -67,21 +53,6 @@ export class EnrollmentService {
     return tier.credits60Min || tier.creditsPerClass; // fallback
   }
 
-  private addMinutesToTime(time: string, minutes: number): string {
-    const [h, m] = time.split(':').map(Number);
-    const totalMinutes = h * 60 + m + minutes;
-    const newH = Math.floor(totalMinutes / 60) % 24;
-    const newM = totalMinutes % 60;
-    return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
-  }
-
-  /** Format a Date as YYYY-MM-DD in UTC */
-  private formatDate(date: Date): string {
-    const y = date.getUTCFullYear();
-    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(date.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
 
   /** Parse the JSON schedule field from DB into typed array */
   private parseSchedule(schedule: unknown): ScheduleSlot[] {
@@ -239,7 +210,7 @@ export class EnrollmentService {
 
       let matchingSlots = 0;
       for (const slot of schedule) {
-        const endTime = this.addMinutesToTime(slot.startTime, duration);
+        const endTime = addMinutesToTime(slot.startTime, duration);
         // Convert parent's slot from parent TZ → tutor TZ
         const startConverted = convertTime(slot.startTime, parentTimezone, tutorTz);
         const endConverted = convertTime(endTime, parentTimezone, tutorTz);
@@ -319,7 +290,7 @@ export class EnrollmentService {
       },
       select: { date: true },
     });
-    const blockedSet = new Set(blockedDates.map((b) => this.formatDate(b.date)));
+    const blockedSet = new Set(blockedDates.map((b) => formatDateUTC(b.date)));
 
     // Only skip dates that already have an active (non-cancelled) session
     const existingSessions = await prisma.enrollmentSession.findMany({
@@ -330,9 +301,9 @@ export class EnrollmentService {
       },
       select: { scheduledDate: true },
     });
-    const existingDates = new Set(existingSessions.map((s) => this.formatDate(s.scheduledDate)));
+    const existingDates = new Set(existingSessions.map((s) => formatDateUTC(s.scheduledDate)));
 
-    let balance = await this.computeBalance(enrollment.parentId);
+    let balance = await computeBalance(enrollment.parentId);
 
     let sessionsCreated = 0;
     let lastDate = enrollment.lastGeneratedDate;
@@ -347,14 +318,14 @@ export class EnrollmentService {
       if (!freshEnrollment || freshEnrollment.status !== 'ACTIVE') break;
 
       const dayOfWeek = currentDate.getDay();
-      const dateStr = this.formatDate(currentDate);
+      const dateStr = formatDateUTC(currentDate);
       const slotTime = dayTimeMap.get(dayOfWeek);
 
       if (slotTime && !existingDates.has(dateStr)) {
-        const endTime = this.addMinutesToTime(slotTime, enrollment.duration);
+        const endTime = addMinutesToTime(slotTime, enrollment.duration);
 
         // Skip if today's slot time has already passed (prevent creating past sessions)
-        if (dateStr === this.formatDate(today)) {
+        if (dateStr === formatDateUTC(today)) {
           const [slotH, slotM] = slotTime.split(':').map(Number);
           const slotMinutesInDay = slotH * 60 + slotM;
           const nowMinutesInDay = nowInParentTz.getUTCHours() * 60 + nowInParentTz.getUTCMinutes();
@@ -478,7 +449,7 @@ export class EnrollmentService {
 
     const creditsPerSession = this.getCreditsForDuration(student.grade.tier, data.duration);
     const minCredits = creditsPerSession * Math.min(data.schedule.length, 4); // At least 1 week's worth
-    const balance = await this.computeBalance(parent.id);
+    const balance = await computeBalance(parent.id);
     if (balance < minCredits) {
       throw ApiError.badRequest('INSUFFICIENT_CREDITS', `You need at least ${minCredits} credits (${creditsPerSession}/session × ${Math.min(data.schedule.length, 4)} sessions) to start. Current balance: ${balance}`);
     }
@@ -709,7 +680,7 @@ export class EnrollmentService {
       }
     }
 
-    const balance = await this.computeBalance(parent.id);
+    const balance = await computeBalance(parent.id);
     if (balance < enrollment.creditsPerSession) {
       throw ApiError.badRequest('INSUFFICIENT_CREDITS', `Need at least ${enrollment.creditsPerSession} credits to resume. Current balance: ${balance}`);
     }
@@ -774,7 +745,7 @@ export class EnrollmentService {
     // Session times are in parent's local timezone — convert to UTC for accurate 24hr comparison
     const parentUser = await prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
     const parentTz = parentUser?.timezone || 'Asia/Dubai';
-    const dateStr = this.formatDate(session.scheduledDate);
+    const dateStr = formatDateUTC(session.scheduledDate);
     const { time: utcStartTime, dayShift } = localToUtc(session.scheduledStart, parentTz, session.scheduledDate);
     const sessionDateTimeUtc = new Date(dateStr + 'T' + utcStartTime + ':00Z');
     if (dayShift !== 0) {
@@ -796,7 +767,7 @@ export class EnrollmentService {
               parentId: session.enrollment.parentId,
               type: 'ADMIN_ADJUSTMENT',
               amount: session.creditsCharged,
-              description: `Refund: cancelled session ${this.formatDate(session.scheduledDate)}`,
+              description: `Refund: cancelled session ${formatDateUTC(session.scheduledDate)}`,
             },
           });
         }
@@ -841,7 +812,7 @@ export class EnrollmentService {
     // Must report within 24hrs of the session end time
     const parentUser = await prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } });
     const parentTz = parentUser?.timezone || 'Asia/Dubai';
-    const dateStr = this.formatDate(session.scheduledDate);
+    const dateStr = formatDateUTC(session.scheduledDate);
     const { time: utcEndTime, dayShift } = localToUtc(session.scheduledEnd, parentTz, session.scheduledDate);
     const sessionEndUtc = new Date(dateStr + 'T' + utcEndTime + ':00Z');
     if (dayShift !== 0) sessionEndUtc.setDate(sessionEndUtc.getDate() + dayShift);
@@ -1193,7 +1164,7 @@ export class EnrollmentService {
               parentId: session.enrollment.parentId,
               type: 'ADMIN_ADJUSTMENT',
               amount: session.creditsCharged,
-              description: `Refund: tutor no-show on ${this.formatDate(session.scheduledDate)}`,
+              description: `Refund: tutor no-show on ${formatDateUTC(session.scheduledDate)}`,
             },
           });
         }
@@ -1259,7 +1230,7 @@ export class EnrollmentService {
             parentId: session.enrollment.parentId,
             type: 'ADMIN_ADJUSTMENT',
             amount: session.creditsCharged,
-            description: `${reason}: session ${this.formatDate(session.scheduledDate)}`,
+            description: `${reason}: session ${formatDateUTC(session.scheduledDate)}`,
           },
         });
       }
@@ -1316,7 +1287,7 @@ export class EnrollmentService {
     for (const session of confirmedSessions) {
       // Use enrollment's immutable timezone snapshot
       const parentTz = session.enrollment.timezone || session.enrollment.parent?.user?.timezone || 'Asia/Dubai';
-      const dateStr = this.formatDate(session.scheduledDate);
+      const dateStr = formatDateUTC(session.scheduledDate);
       const { time: utcEndTime, dayShift } = localToUtc(session.scheduledEnd, parentTz, session.scheduledDate);
 
       // Build the actual UTC datetime of the session end
@@ -1356,7 +1327,7 @@ export class EnrollmentService {
 
     if (pausedEnrollments.length === 0) return 0;
 
-    const balance = await this.computeBalance(parentId);
+    const balance = await computeBalance(parentId);
     let resumed = 0;
 
     for (const enrollment of pausedEnrollments) {

@@ -50,8 +50,7 @@ const Categories = () => {
   ];
 
   const handleSearch = (filters: any) => {
-    console.log("Search filters:", filters);
-    // Implement search functionality
+    // TODO: Implement search functionality
   };
 
   return (

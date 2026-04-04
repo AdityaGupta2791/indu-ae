@@ -73,10 +73,11 @@ export class AuthService {
     });
 
     // TODO (M12): Send verification email via AWS SES
-    // For local dev, log a clickable verification link to the console
     const verifyUrl = `${env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
-    console.log(`\n📧 Email verification for ${user.email}:`);
-    console.log(`   ${verifyUrl}\n`);
+    if (env.NODE_ENV === 'development') {
+      console.log(`\n📧 Email verification for ${user.email}:`);
+      console.log(`   ${verifyUrl}\n`);
+    }
 
     return { message: 'Account created. Please check your email to verify.' };
   }
@@ -305,8 +306,10 @@ export class AuthService {
 
     // TODO (M12): Send reset email via AWS SES
     const resetUrl = `${env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
-    console.log(`\n🔑 Password reset for ${user.email}:`);
-    console.log(`   ${resetUrl}\n`);
+    if (env.NODE_ENV === 'development') {
+      console.log(`\n🔑 Password reset for ${user.email}:`);
+      console.log(`   ${resetUrl}\n`);
+    }
 
     return { message: 'If this email exists, a reset link has been sent.' };
   }

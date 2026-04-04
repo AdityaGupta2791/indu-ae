@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/apiError';
+import logger from '../../config/logger';
 
 export const errorHandler = (
   err: Error,
@@ -7,11 +8,13 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  // Log error in development (skip noisy expected 401s)
-  if (process.env.NODE_ENV === 'development') {
-    const isExpected401 = err instanceof ApiError && err.statusCode === 401;
-    if (!isExpected401) {
-      console.error('Error:', err);
+  // Log error (skip noisy expected 401s)
+  const isExpected401 = err instanceof ApiError && err.statusCode === 401;
+  if (!isExpected401) {
+    if (err instanceof ApiError) {
+      logger.warn(err.message, { code: err.code, statusCode: err.statusCode });
+    } else {
+      logger.error(err.message, { stack: err.stack });
     }
   }
 
