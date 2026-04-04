@@ -161,17 +161,14 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
           <div className="flex flex-col h-full p-2 gap-1">
             {[
               { href: "/tutor-dashboard", label: "Dashboard", icon: LayoutDashboard },
-              { href: "/tutor-dashboard/classes", label: "Classes", icon: BookOpen },
               { href: "/tutor-dashboard/course-materials", label: "Course Materials", icon: FileText },
-              { href: "/tutor-dashboard/demo-requests", label: "Demo Requests", icon: Calendar },
               { href: "/tutor-dashboard/bookings", label: "My Bookings", icon: CalendarCheck },
               { href: "/tutor-dashboard/enrollments", label: "Enrollments", icon: BookOpen },
               { href: "/tutor-dashboard/batches", label: "Group Classes", icon: Users },
               { href: "/tutor-dashboard/recordings", label: "Recordings", icon: Video },
               { href: "/tutor-dashboard/assessments", label: "Assessments", icon: ClipboardList },
               { href: "/tutor-dashboard/earnings", label: "Earnings", icon: BarChart },
-              { href: "/tutor-dashboard/messages", label: "Messages", icon: MessageSquare },
-              { href: "/tutor-dashboard/feedback", label: "Feedback", icon: Star },
+                            { href: "/tutor-dashboard/feedback", label: "Feedback", icon: Star },
               { href: "/tutor-dashboard/availability", label: "Availability", icon: Clock },
             ].map((item) => (
               <Link
@@ -221,17 +218,14 @@ const TutorDashboardLayout = ({ children }: TutorDashboardLayoutProps) => {
               <nav className="flex flex-col gap-2 mt-6">
                 {[
                   { icon: LayoutDashboard, label: "Dashboard", href: "/tutor-dashboard" },
-                  { icon: BookOpen, label: "Classes", href: "/tutor-dashboard/classes" },
                   { icon: FileText, label: "Course Materials", href: "/tutor-dashboard/course-materials" },
-                  { icon: Calendar, label: "Demo Requests", href: "/tutor-dashboard/demo-requests" },
                   { icon: CalendarCheck, label: "My Bookings", href: "/tutor-dashboard/bookings" },
                   { icon: BookOpen, label: "Enrollments", href: "/tutor-dashboard/enrollments" },
                   { icon: Users, label: "Group Classes", href: "/tutor-dashboard/batches" },
                   { icon: Video, label: "Recordings", href: "/tutor-dashboard/recordings" },
                   { icon: ClipboardList, label: "Assessments", href: "/tutor-dashboard/assessments" },
                   { icon: BarChart, label: "Earnings", href: "/tutor-dashboard/earnings" },
-                  { icon: MessageSquare, label: "Messages", href: "/tutor-dashboard/messages" },
-                  { icon: Star, label: "Feedback", href: "/tutor-dashboard/feedback" },
+                                    { icon: Star, label: "Feedback", href: "/tutor-dashboard/feedback" },
                   { icon: Clock, label: "Availability", href: "/tutor-dashboard/availability" },
                 ].map((item) => (
                   <Link

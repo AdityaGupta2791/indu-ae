@@ -29,6 +29,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Flag,
+  FileText,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { displayTime, displayTimeRange } from "@/lib/utils";
@@ -37,6 +39,7 @@ import {
   type Enrollment,
   type EnrollmentSession,
   type SessionStatus,
+  type CourseMaterial,
 } from "@/services/enrollment.service";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -59,6 +62,7 @@ const EnrollmentDetail = () => {
 
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [sessions, setSessions] = useState<EnrollmentSession[]>([]);
+  const [materials, setMaterials] = useState<CourseMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -73,6 +77,8 @@ const EnrollmentDetail = () => {
       setSessions(
         s.data.sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
       );
+      // Fetch course materials (non-blocking)
+      parentEnrollmentService.getCourseMaterials(id).then((res) => setMaterials(res.materials)).catch(() => {});
     } catch {
       toast({ title: "Error", description: "Failed to load enrollment details.", variant: "destructive" });
     } finally {
@@ -435,6 +441,57 @@ const EnrollmentDetail = () => {
                   </AlertDialogContent>
                 </AlertDialog>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Course Materials */}
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-indigo-600" />
+              Course Materials
+              {materials.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{materials.length}</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {materials.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No course materials uploaded yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {materials.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-white">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase shrink-0 ${
+                          m.fileType === "pdf" ? "bg-red-50 text-red-700 border-red-200"
+                            : m.fileType === "docx" || m.fileType === "doc" ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : m.fileType === "pptx" || m.fileType === "ppt" ? "bg-orange-50 text-orange-700 border-orange-200"
+                            : m.fileType === "xlsx" || m.fileType === "xls" ? "bg-green-50 text-green-700 border-green-200"
+                            : m.fileType === "mp4" ? "bg-purple-50 text-purple-700 border-purple-200"
+                            : "bg-gray-50 text-gray-700 border-gray-200"
+                        }`}
+                      >
+                        {m.fileType}
+                      </Badge>
+                      <span className="text-sm font-medium truncate">{m.title}</span>
+                      {m.fileSizeKb && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {m.fileSizeKb >= 1024 ? `${(m.fileSizeKb / 1024).toFixed(1)} MB` : `${m.fileSizeKb} KB`}
+                        </span>
+                      )}
+                    </div>
+                    <a href={m.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <Button variant="ghost" size="sm" className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 shrink-0">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </a>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

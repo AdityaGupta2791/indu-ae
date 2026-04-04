@@ -26,7 +26,7 @@ const ClassList: React.FC<ClassListProps> = ({
   columnCount = "3",
   limit,
   showViewAll = false,
-  viewAllLink = "/explore/academic-subjects",
+  viewAllLink = "/parent-dashboard/enrolled-classes",
   viewAllLabel = "View All Classes"
 }) => {
   const { cardStyles, buttonStyles } = useDesignTokens();
@@ -78,7 +78,7 @@ const ClassList: React.FC<ClassListProps> = ({
           <p className="text-muted-foreground">{emptyStateMessage}</p>
           {showFindClassesButton && (
             <Button asChild className={`${buttonStyles.primary} mt-4`}>
-              <Link to="/explore/academic-subjects">Find Classes</Link>
+              <Link to="/parent-dashboard/enrolled-classes">Find Classes</Link>
             </Button>
           )}
         </CardContent>

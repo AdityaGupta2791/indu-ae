@@ -37,17 +37,26 @@ const Earnings = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const apiStatus = statusFilter === "THIS_MONTH" ? undefined : (statusFilter !== "ALL" ? statusFilter : undefined);
       const [summaryRes, earningsRes] = await Promise.all([
         tutorEarningService.getSummary(),
         tutorEarningService.list({
           page,
-          limit: 20,
-          status: statusFilter !== "ALL" ? statusFilter : undefined,
+          limit: statusFilter === "THIS_MONTH" ? 100 : 20,
+          status: apiStatus,
         }),
       ]);
       setSummary(summaryRes);
-      setEarnings(earningsRes.data);
-      setTotalPages(earningsRes.meta.totalPages);
+      if (statusFilter === "THIS_MONTH") {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const filtered = earningsRes.data.filter((e) => new Date(e.classDate) >= startOfMonth);
+        setEarnings(filtered);
+        setTotalPages(1);
+      } else {
+        setEarnings(earningsRes.data);
+        setTotalPages(earningsRes.meta.totalPages);
+      }
     } catch {
       toast({ title: "Error", description: "Failed to load earnings data", variant: "destructive" });
     } finally {
@@ -70,9 +79,9 @@ const Earnings = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards (clickable filters) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white shadow-sm rounded-xl">
+          <Card className={`cursor-pointer transition-all ${statusFilter === "ALL" ? "ring-2 ring-purple-500" : "hover:shadow-md"}`} onClick={() => { setStatusFilter("ALL"); setPage(1); }}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -87,7 +96,7 @@ const Earnings = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-sm rounded-xl">
+          <Card className={`cursor-pointer transition-all ${statusFilter === "UNPAID" ? "ring-2 ring-amber-500" : "hover:shadow-md"}`} onClick={() => { setStatusFilter("UNPAID"); setPage(1); }}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -101,7 +110,7 @@ const Earnings = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-sm rounded-xl">
+          <Card className={`cursor-pointer transition-all ${statusFilter === "PAID" ? "ring-2 ring-green-500" : "hover:shadow-md"}`} onClick={() => { setStatusFilter("PAID"); setPage(1); }}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -115,7 +124,7 @@ const Earnings = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-sm rounded-xl">
+          <Card className={`cursor-pointer transition-all ${statusFilter === "THIS_MONTH" ? "ring-2 ring-blue-500" : "hover:shadow-md"}`} onClick={() => { setStatusFilter("THIS_MONTH"); setPage(1); }}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -135,17 +144,9 @@ const Earnings = () => {
         <Card className="bg-white shadow-sm rounded-xl">
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Earnings History</h3>
-              <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-                <SelectTrigger className="w-[140px] h-9 bg-white border border-gray-200 rounded-lg">
-                  <SelectValue placeholder="Filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All</SelectItem>
-                  <SelectItem value="UNPAID">Unpaid</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                </SelectContent>
-              </Select>
+              <h3 className="text-lg font-medium text-gray-900">
+                Earnings History {statusFilter !== "ALL" && <span className="text-sm font-normal text-muted-foreground">— {statusFilter === "THIS_MONTH" ? "This month" : statusFilter.toLowerCase()}</span>}
+              </h3>
             </div>
 
             <div className="overflow-x-auto">

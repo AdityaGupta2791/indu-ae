@@ -694,4 +694,34 @@ export class BatchService {
       });
     }
   }
+
+  // ==========================================
+  // PARENT: COURSE MATERIALS
+  // ==========================================
+
+  async getCourseMaterials(batchId: string) {
+    const batch = await prisma.batch.findUnique({
+      where: { id: batchId },
+      select: { subjectId: true, gradeId: true, subject: { select: { name: true } } },
+    });
+
+    if (!batch) throw ApiError.notFound('Batch not found');
+
+    const course = await prisma.course.findUnique({
+      where: { subjectId_gradeId: { subjectId: batch.subjectId, gradeId: batch.gradeId } },
+      select: {
+        id: true,
+        name: true,
+        materials: {
+          select: { id: true, title: true, fileUrl: true, fileType: true, fileSizeKb: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    return {
+      courseName: course?.name || batch.subject.name,
+      materials: course?.materials || [],
+    };
+  }
 }

@@ -131,6 +131,11 @@ export const parentBatchService = {
   async leave(batchId: string, studentId: string): Promise<void> {
     await api.post(`/batches/${batchId}/leave`, { studentId });
   },
+
+  async getCourseMaterials(batchId: string): Promise<{ courseName: string; materials: { id: string; title: string; fileUrl: string; fileType: string; fileSizeKb: number | null; createdAt: string }[] }> {
+    const { data } = await api.get(`/batches/${batchId}/materials`);
+    return data.data;
+  },
 };
 
 // Tutor

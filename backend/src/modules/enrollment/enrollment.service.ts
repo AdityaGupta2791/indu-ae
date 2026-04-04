@@ -1372,4 +1372,39 @@ export class EnrollmentService {
 
     return resumed;
   }
+
+  // ==========================================
+  // PARENT: COURSE MATERIALS
+  // ==========================================
+
+  async getCourseMaterials(userId: string, enrollmentId: string) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        parent: { select: { userId: true } },
+        student: { select: { gradeId: true } },
+        subject: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!enrollment) throw ApiError.notFound('Enrollment not found');
+    if (enrollment.parent.userId !== userId) throw ApiError.forbidden('Not your enrollment');
+
+    const course = await prisma.course.findUnique({
+      where: { subjectId_gradeId: { subjectId: enrollment.subjectId, gradeId: enrollment.student.gradeId } },
+      select: {
+        id: true,
+        name: true,
+        materials: {
+          select: { id: true, title: true, fileUrl: true, fileType: true, fileSizeKb: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    return {
+      courseName: course?.name || `${enrollment.subject.name}`,
+      materials: course?.materials || [],
+    };
+  }
 }

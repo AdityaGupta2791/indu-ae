@@ -106,6 +106,15 @@ export class EnrollmentController {
     }
   }
 
+  async getCourseMaterials(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await enrollmentService.getCourseMaterials(req.user!.id, req.params.id as string);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ==========================================
   // TUTOR
   // ==========================================

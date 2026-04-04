@@ -108,4 +108,13 @@ export class BatchController {
       sendSuccess(res, result);
     } catch (error) { next(error); }
   }
+
+  // ---- PARENT: COURSE MATERIALS ----
+
+  async getCourseMaterials(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await service.getCourseMaterials(req.params.id as string);
+      sendSuccess(res, result);
+    } catch (error) { next(error); }
+  }
 }

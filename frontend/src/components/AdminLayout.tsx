@@ -60,7 +60,6 @@ const navItems = [
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/earnings", label: "Earnings & Payouts", icon: DollarSign },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/messages", label: "Messages", icon: MessageSquare },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
 ];
 

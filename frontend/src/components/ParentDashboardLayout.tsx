@@ -12,8 +12,6 @@ import {
   ClipboardList,
   MessageSquare,
   Menu,
-  Bell,
-  HelpCircle,
   Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -56,7 +54,6 @@ const navItems = [
   { href: "/parent-dashboard/my-batches", label: "My Group Classes", icon: Users },
   { href: "/parent-dashboard/recordings", label: "Recordings", icon: Video },
   { href: "/parent-dashboard/assessments", label: "Assessments", icon: ClipboardList },
-  { href: "/parent-dashboard/messages", label: "Messages", icon: MessageSquare },
 ];
 
 const ParentDashboardLayout = ({ children }: ParentDashboardLayoutProps) => {

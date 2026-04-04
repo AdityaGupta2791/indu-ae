@@ -115,6 +115,14 @@ router.get(
 );
 
 router.get(
+  '/batches/:id/materials',
+  authenticate,
+  requireRole(Role.PARENT),
+  validate({ params: batchIdParam }),
+  controller.getCourseMaterials
+);
+
+router.get(
   '/batches/:id',
   authenticate,
   requireRole(Role.PARENT),

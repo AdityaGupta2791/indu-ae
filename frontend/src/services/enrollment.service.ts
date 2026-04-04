@@ -46,6 +46,20 @@ export interface EnrollmentSession {
   cancelReason: string | null;
 }
 
+export interface CourseMaterial {
+  id: string;
+  title: string;
+  fileUrl: string;
+  fileType: string;
+  fileSizeKb: number | null;
+  createdAt: string;
+}
+
+export interface CourseMaterialsResponse {
+  courseName: string;
+  materials: CourseMaterial[];
+}
+
 export interface CreateEnrollmentPayload {
   studentId: string;
   subjectId: string;
@@ -129,6 +143,11 @@ export const parentEnrollmentService = {
 
   async reportNoShow(sessionId: string): Promise<EnrollmentSession> {
     const { data } = await api.patch(`/enrollment-sessions/${sessionId}/report-no-show`);
+    return data.data;
+  },
+
+  async getCourseMaterials(enrollmentId: string): Promise<CourseMaterialsResponse> {
+    const { data } = await api.get(`/enrollments/${enrollmentId}/materials`);
     return data.data;
   },
 

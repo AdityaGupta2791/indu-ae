@@ -34,6 +34,8 @@ import {
   FileText,
   TrendingUp,
   Loader2,
+  Search,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -53,6 +55,10 @@ const TutorAssessments = () => {
 
   // Students for dropdown
   const [myStudents, setMyStudents] = useState<TutorStudent[]>([]);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -83,8 +89,19 @@ const TutorAssessments = () => {
 
   useEffect(() => { fetchResults(); }, [page]);
   useEffect(() => {
-    tutorAssessmentService.getMyStudents().then(setMyStudents).catch(() => {});
+    tutorAssessmentService.getMyStudents().then(setMyStudents).catch(() => { });
   }, []);
+
+  // Derive unique subjects + client-side filtering
+  const allSubjects = [...new Set(results.map((r) => r.subject))].sort();
+  const filtered = results.filter((r) => {
+    if (subjectFilter && r.subject !== subjectFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (r.title || "").toLowerCase().includes(q) || (r.studentName || "").toLowerCase().includes(q) || (r.subject || "").toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const handleCreate = async () => {
     if (!form.studentId || !form.subjectId || !form.title || !form.score) {
@@ -167,9 +184,9 @@ const TutorAssessments = () => {
                 <FileText className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">With Docs</p>
+                <p className="text-sm text-gray-500">Subjects Covered</p>
                 <p className="text-xl font-bold">
-                  {results.filter((r) => (r.documentsCount ?? 0) > 0).length}
+                  {new Set(results.map((r) => r.subject)).size}
                 </p>
               </div>
             </CardContent>
@@ -179,7 +196,33 @@ const TutorAssessments = () => {
         {/* Results Table */}
         <Card className="bg-white shadow-sm rounded-xl">
           <CardContent className="p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">All Results</h3>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                All Results ({filtered.length})
+              </h3>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search student, title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-full sm:w-56"
+                  />
+                </div>
+                <Select value={subjectFilter} onValueChange={(v) => setSubjectFilter(v === "all" ? "" : v)}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="All Subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Subjects</SelectItem>
+                    {allSubjects.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -190,7 +233,7 @@ const TutorAssessments = () => {
                     <TableHead className="font-medium text-gray-700">Score</TableHead>
                     <TableHead className="font-medium text-gray-700">Percentage</TableHead>
                     <TableHead className="font-medium text-gray-700">Date</TableHead>
-                    <TableHead className="font-medium text-gray-700 text-right">Actions</TableHead>
+                    <TableHead className="font-medium text-gray-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -200,14 +243,14 @@ const TutorAssessments = () => {
                         <Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading...
                       </TableCell>
                     </TableRow>
-                  ) : results.length === 0 ? (
+                  ) : filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                        No assessment results yet. Click "Upload Result" to add one.
+                        {searchQuery || subjectFilter ? "No results match your filters." : "No assessment results yet. Click \"Upload Result\" to add one."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    results.map((r) => (
+                    filtered.map((r) => (
                       <TableRow key={r.id}>
                         <TableCell className="font-medium">{r.title}</TableCell>
                         <TableCell>{r.studentName}</TableCell>
@@ -219,8 +262,8 @@ const TutorAssessments = () => {
                               r.percentage >= 80
                                 ? "bg-green-100 text-green-800"
                                 : r.percentage >= 50
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-red-100 text-red-800"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-red-100 text-red-800"
                             }
                             variant="outline"
                           >
@@ -228,14 +271,14 @@ const TutorAssessments = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>{new Date(r.assessedAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleDelete(r.id)}
                           >
-                            Delete
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>

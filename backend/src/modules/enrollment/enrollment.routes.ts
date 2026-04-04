@@ -96,6 +96,14 @@ router.patch(
   controller.reportNoShow
 );
 
+router.get(
+  '/enrollments/:id/materials',
+  authenticate,
+  requireRole(Role.PARENT),
+  validate({ params: enrollmentIdParam }),
+  controller.getCourseMaterials
+);
+
 // ==========================================
 // TUTOR ROUTES
 // ==========================================

@@ -48,7 +48,6 @@ const navItems = [
   { href: "/consultant-dashboard/demo-bookings", label: "Demo Bookings", icon: Calendar },
   { href: "/consultant-dashboard/allocations", label: "Allocations", icon: UserCheck },
   { href: "/consultant-dashboard/earnings", label: "Earnings", icon: BarChart },
-  { href: "/consultant-dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/consultant-dashboard/feedback", label: "Feedback", icon: Star },
 ];
 
